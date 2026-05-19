@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Search, User, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 const Navbar = ({ darkMode, setDarkMode }) => {
   const { isAuthenticated, logout, user } = useAuth();
+  const { cartCount } = useCart();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -90,9 +92,11 @@ const Navbar = ({ darkMode, setDarkMode }) => {
           
           <Link to="/cart" className="relative hover:text-primary transition-colors">
             <ShoppingCart size={22} />
-            <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold w-4 h-4 rounded-full flex justify-center items-center">
-              0
-            </span>
+            {cartCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex justify-center items-center">
+                {cartCount > 9 ? '9+' : cartCount}
+              </span>
+            )}
           </Link>
 
           {/* Mobile Menu Toggle */}

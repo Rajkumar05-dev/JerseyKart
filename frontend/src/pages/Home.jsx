@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const Home = () => {
@@ -48,12 +49,12 @@ const Home = () => {
             transition={{ duration: 0.6, delay: 0.6 }}
             className="flex gap-4 flex-col sm:flex-row"
           >
-            <button className="btn-primary hover:-translate-y-1">
+            <Link to="/products" className="btn-primary hover:-translate-y-1 inline-block text-center">
               Shop Now
-            </button>
-            <button className="px-6 py-3 bg-white/10 backdrop-blur-md text-white font-semibold rounded-lg hover:bg-white/20 transition-all duration-300 border border-white/20 hover:-translate-y-1">
+            </Link>
+            <Link to="/products?category=football" className="px-6 py-3 bg-white/10 backdrop-blur-md text-white font-semibold rounded-lg hover:bg-white/20 transition-all duration-300 border border-white/20 hover:-translate-y-1 inline-block text-center">
               Explore Teams
-            </button>
+            </Link>
           </motion.div>
         </div>
       </section>
@@ -62,9 +63,22 @@ const Home = () => {
       <section className="py-20 px-4 max-w-7xl mx-auto text-center">
          <h2 className="text-3xl font-display font-bold mb-12">Shop by Sport</h2>
          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="h-80 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-            <div className="h-80 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-            <div className="h-80 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
+            {[
+              { name: 'Football', slug: 'football', img: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800' },
+              { name: 'Cricket', slug: 'cricket', img: 'https://images.unsplash.com/photo-1531415071028-05b841bc90ef?w=800' },
+              { name: 'Basketball', slug: 'basketball', img: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800' },
+            ].map((sport) => (
+              <Link
+                key={sport.slug}
+                to={`/products?category=${sport.slug}`}
+                className="group relative h-80 rounded-2xl overflow-hidden"
+              >
+                <img src={sport.img} alt={sport.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-center pb-8">
+                  <span className="text-2xl font-display font-bold text-white">{sport.name}</span>
+                </div>
+              </Link>
+            ))}
          </div>
       </section>
     </div>
