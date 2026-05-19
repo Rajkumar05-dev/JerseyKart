@@ -61,7 +61,7 @@ public class AuthController {
         cart.setUser(savedUser);
         cartRepository.save(cart);
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(savedUser.getEmail(), savedUser.getPassword());
+        Authentication authentication = authenticate(savedUser.getEmail(), user.getPassword());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String token = jwtProvider.generateToken(authentication);

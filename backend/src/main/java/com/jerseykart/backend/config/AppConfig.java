@@ -21,15 +21,15 @@ public class AppConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(Authorize -> Authorize
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .addFilterBefore(new JwtTokenValidator(), BasicAuthenticationFilter.class)
-                .csrf().disable()
-                .cors().configurationSource(new CorsConfigurationSource() {
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(new CorsConfigurationSource() {
                     @Override
                     public CorsConfiguration getCorsConfiguration(jakarta.servlet.http.HttpServletRequest request) {
                         CorsConfiguration cfg = new CorsConfiguration();
@@ -41,9 +41,9 @@ public class AppConfig {
                         cfg.setMaxAge(3600L);
                         return cfg;
                     }
-                })
-                .and()
-                .httpBasic().and().formLogin().disable();
+                }))
+                .httpBasic(httpBasic -> {})
+                .formLogin(form -> form.disable());
         return http.build();
     }
 

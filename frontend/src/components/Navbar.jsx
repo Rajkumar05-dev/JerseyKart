@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Search, User, Menu, X, Sun, Moon } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({ darkMode, setDarkMode }) => {
+  const { isAuthenticated, logout, user } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -48,10 +50,43 @@ const Navbar = ({ darkMode, setDarkMode }) => {
           <button className="hover:text-primary transition-colors hidden sm:block">
             <Search size={22} />
           </button>
-          
-          <Link to="/profile" className="hover:text-primary transition-colors hidden sm:block">
-            <User size={22} />
-          </Link>
+
+          {isAuthenticated ? (
+            <>
+              <Link
+                to="/profile"
+                className="hidden sm:flex items-center gap-2 hover:text-primary transition-colors text-sm font-medium dark:text-white"
+                title={user?.email}
+              >
+                <User size={22} />
+                <span className="max-w-[120px] truncate">{user?.firstName || 'Profile'}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={logout}
+                className="hidden sm:flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors dark:text-white"
+              >
+                <LogOut size={18} />
+                Logout
+              </button>
+            </>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="hidden sm:flex items-center gap-3"
+            >
+              <Link
+                to="/login"
+                className="text-sm font-semibold hover:text-primary transition-colors dark:text-white"
+              >
+                Login
+              </Link>
+              <Link to="/register" className="btn-primary !px-4 !py-2 text-sm">
+                Sign Up
+              </Link>
+            </motion.div>
+          )}
           
           <Link to="/cart" className="relative hover:text-primary transition-colors">
             <ShoppingCart size={22} />
@@ -83,14 +118,34 @@ const Navbar = ({ darkMode, setDarkMode }) => {
             <Link to="/products?category=football" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2 border-b dark:border-gray-800">Football</Link>
             <Link to="/products?category=cricket" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2 border-b dark:border-gray-800">Cricket</Link>
             <Link to="/products?category=basketball" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2 border-b dark:border-gray-800">Basketball</Link>
-            <div className="flex gap-4 pt-4">
+            <motion.div className="flex flex-col gap-3 pt-4 border-t dark:border-gray-800">
                <button className="flex items-center gap-2 hover:text-primary transition-colors">
                  <Search size={20} /> Search
                </button>
-               <Link to="/profile" className="flex items-center gap-2 hover:text-primary transition-colors">
-                 <User size={20} /> Profile
-               </Link>
-            </div>
+               {isAuthenticated ? (
+                 <>
+                   <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 hover:text-primary transition-colors">
+                     <User size={20} /> Profile
+                   </Link>
+                   <button
+                     type="button"
+                     onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                     className="flex items-center gap-2 hover:text-primary transition-colors text-left"
+                   >
+                     <LogOut size={20} /> Logout
+                   </button>
+                 </>
+               ) : (
+                 <>
+                   <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2">
+                     Login
+                   </Link>
+                   <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary text-center">
+                     Sign Up
+                   </Link>
+                 </>
+               )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

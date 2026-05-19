@@ -40,7 +40,7 @@ public class ProductService {
         Optional<Product> productOpt = productRepository.findById(productId);
         if (productOpt.isPresent()) {
             Product product = productOpt.get();
-            if(req.getQuantity() != 0) {
+            if(req.getTotalQuantity() != null && req.getTotalQuantity() != 0) {
                 product.setTotalQuantity(req.getTotalQuantity());
             }
             if(req.getPrice() != null) {
