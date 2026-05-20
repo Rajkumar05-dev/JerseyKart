@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ImageUp, Package, Plus, Trash2, Pencil, LogOut, Store } from 'lucide-react';
+import { CheckCircle2, ImageUp, Package, Plus, Trash2, Pencil, LogOut, Store } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { getImageUrl } from '../utils/imageUrl';
@@ -22,6 +22,8 @@ const emptyForm = {
 const formatPrice = (price) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
 
+const isValidImagePath = (url) => /^https?:\/\//i.test(url) || url.startsWith('/uploads/');
+
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const formRef = useRef(null);
@@ -33,6 +35,8 @@ const AdminDashboard = () => {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUploadStatus, setImageUploadStatus] = useState('');
+  const [imageUploadMessage, setImageUploadMessage] = useState('');
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -59,6 +63,9 @@ const AdminDashboard = () => {
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (e.target.name === 'imageUrl') {
+      setImageUploadStatus(isValidImagePath(e.target.value) ? 'success' : '');
+    }
   };
 
   const handleImageUpload = async (e) => {
@@ -68,13 +75,18 @@ const AdminDashboard = () => {
     const formData = new FormData();
     formData.append('image', file);
     setUploadingImage(true);
+    setImageUploadStatus('uploading');
+    setImageUploadMessage('');
     setError('');
 
     try {
       const { data } = await api.post('/api/admin/uploads/image', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      if (!data.url) throw new Error('Image upload response missing URL');
       setForm((prev) => ({ ...prev, imageUrl: data.url }));
+      setImageUploadStatus('success');
+      setImageUploadMessage('Image uploaded successfully.');
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -82,7 +94,10 @@ const AdminDashboard = () => {
         err.response?.data ||
         err.message ||
         'Image upload failed';
-      setError(typeof msg === 'string' ? msg : 'Image upload failed');
+      const message = typeof msg === 'string' ? msg : 'Image upload failed';
+      setError(message);
+      setImageUploadStatus('error');
+      setImageUploadMessage(message);
     } finally {
       setUploadingImage(false);
       e.target.value = '';
@@ -99,7 +114,7 @@ const AdminDashboard = () => {
     teamName: form.teamName,
     jerseyType: form.jerseyType,
     category: { name: form.categoryName },
-    imageUrls: form.imageUrl ? [form.imageUrl] : [],
+    imageUrls: isValidImagePath(form.imageUrl) ? [form.imageUrl] : [],
     sizes: { S: 10, M: 20, L: 15, XL: 10 },
   });
 
@@ -115,6 +130,8 @@ const AdminDashboard = () => {
         await api.post('/api/admin/products/', payload);
       }
       setForm(emptyForm);
+      setImageUploadStatus('');
+      setImageUploadMessage('');
       setEditingId(null);
       setShowForm(false);
       await fetchProducts();
@@ -133,6 +150,8 @@ const AdminDashboard = () => {
 
   const handleEdit = (product) => {
     setEditingId(product.id);
+    setImageUploadStatus(product.imageUrls?.[0] ? 'success' : '');
+    setImageUploadMessage(product.imageUrls?.[0] ? 'Image uploaded successfully.' : '');
     setForm({
       title: product.title || '',
       description: product.description || '',
@@ -177,7 +196,7 @@ const AdminDashboard = () => {
           </button>
           <button
             type="button"
-            onClick={() => { setShowForm(true); setEditingId(null); setForm(emptyForm); }}
+            onClick={() => { setShowForm(true); setEditingId(null); setForm(emptyForm); setImageUploadStatus(''); setImageUploadMessage(''); }}
             className="btn-primary inline-flex items-center gap-2 !py-2"
           >
             <Plus size={18} /> Add Product
@@ -231,24 +250,34 @@ const AdminDashboard = () => {
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Product image</label>
               <div className="flex flex-col sm:flex-row gap-3">
-                <label className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 dark:text-white cursor-pointer hover:border-primary hover:text-primary transition">
-                  <ImageUp size={18} />
-                  {uploadingImage ? 'Uploading...' : 'Upload from storage'}
+                <label
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed cursor-pointer transition ${
+                    imageUploadStatus === 'success'
+                      ? 'border-green-500 bg-green-50 text-green-700 hover:border-green-600 hover:text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                      : imageUploadStatus === 'error'
+                        ? 'border-red-400 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-300'
+                        : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:text-gray-900 dark:border-gray-700 dark:text-white'
+                  }`}
+                >
+                  {imageUploadStatus === 'success' ? <CheckCircle2 size={18} /> : <ImageUp size={18} />}
+                  {uploadingImage ? 'Uploading...' : imageUploadStatus === 'success' ? 'Image uploaded' : 'Upload from storage'}
                   <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} className="hidden" />
                 </label>
-                <input
-                  name="imageUrl"
-                  value={form.imageUrl}
-                  onChange={handleChange}
-                  placeholder="Uploaded image path"
-                  className="input-field flex-1"
-                />
+                <div className="input-field flex-1 min-h-[50px] flex items-center text-sm text-gray-500 break-all">
+                  {isValidImagePath(form.imageUrl) ? form.imageUrl : 'No image uploaded yet'}
+                </div>
               </div>
-              {form.imageUrl && (
+              {isValidImagePath(form.imageUrl) && (
                 <div className="mt-3 flex items-center gap-3">
                   <img src={getImageUrl(form.imageUrl)} alt="" className="w-16 h-16 rounded object-cover border dark:border-gray-700" />
                   <span className="text-sm text-gray-500 break-all">{form.imageUrl}</span>
                 </div>
+              )}
+              {imageUploadStatus === 'success' && (
+                <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-300">{imageUploadMessage}</p>
+              )}
+              {imageUploadStatus === 'error' && (
+                <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-300">{imageUploadMessage}</p>
               )}
             </div>
             <textarea name="description" value={form.description} onChange={handleChange} placeholder="Description" rows={3} className="input-field md:col-span-2" />
