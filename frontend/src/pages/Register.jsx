@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
@@ -13,6 +14,8 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -73,7 +76,7 @@ const Register = () => {
             className="grid grid-cols-2 gap-4"
           >
             <motion.div transition={{ delay: 0.1 }}>
-              <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">First name</label>
+              <label className="form-label">First name</label>
               <input
                 type="text"
                 name="firstName"
@@ -81,24 +84,24 @@ const Register = () => {
                 value={form.firstName}
                 onChange={handleChange}
                 placeholder="Raj"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                className="input-field"
               />
             </motion.div>
             <motion.div transition={{ delay: 0.15 }}>
-              <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Last name</label>
+              <label className="form-label">Last name</label>
               <input
                 type="text"
                 name="lastName"
                 value={form.lastName}
                 onChange={handleChange}
                 placeholder="Chauhan"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                className="input-field"
               />
             </motion.div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Email</label>
+            <label className="form-label">Email</label>
             <input
               type="email"
               name="email"
@@ -106,36 +109,56 @@ const Register = () => {
               value={form.email}
               onChange={handleChange}
               placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+              className="input-field"
             />
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Password</label>
+            <label className="form-label">Password</label>
+            <div className="relative">
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               name="password"
               required
               minLength={6}
               value={form.password}
               onChange={handleChange}
               placeholder="Min 6 characters"
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+              className="input-field pr-12"
             />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-primary dark:text-gray-400 dark:hover:bg-gray-800"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+              </button>
+            </div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Confirm password</label>
+            <label className="form-label">Confirm password</label>
+            <div className="relative">
             <input
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               name="confirmPassword"
               required
               minLength={6}
               value={form.confirmPassword}
               onChange={handleChange}
               placeholder="Repeat password"
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+              className="input-field pr-12"
             />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-primary dark:text-gray-400 dark:hover:bg-gray-800"
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+              >
+                {showConfirmPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+              </button>
+            </div>
           </motion.div>
 
           <motion.button

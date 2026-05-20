@@ -74,7 +74,7 @@ const AdminRegister = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">First name</label>
+              <label className="form-label">First name</label>
               <input
                 type="text"
                 name="firstName"
@@ -82,24 +82,24 @@ const AdminRegister = () => {
                 value={form.firstName}
                 onChange={handleChange}
                 placeholder="Admin"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                className="input-field"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Last name</label>
+              <label className="form-label">Last name</label>
               <input
                 type="text"
                 name="lastName"
                 value={form.lastName}
                 onChange={handleChange}
                 placeholder="JerseyKart"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                className="input-field"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Email</label>
+            <label className="form-label">Email</label>
             <input
               type="email"
               name="email"
@@ -107,12 +107,12 @@ const AdminRegister = () => {
               value={form.email}
               onChange={handleChange}
               placeholder="admin@example.com"
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Password</label>
+            <label className="form-label">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -122,12 +122,12 @@ const AdminRegister = () => {
                 value={form.password}
                 onChange={handleChange}
                 placeholder="Min 6 characters"
-                className="w-full px-4 py-3 pr-12 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                className="input-field pr-12"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-primary dark:text-gray-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-primary dark:text-gray-400 dark:hover:bg-gray-800"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -136,7 +136,7 @@ const AdminRegister = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Confirm password</label>
+            <label className="form-label">Confirm password</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -146,12 +146,12 @@ const AdminRegister = () => {
                 value={form.confirmPassword}
                 onChange={handleChange}
                 placeholder="Repeat password"
-                className="w-full px-4 py-3 pr-12 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none"
+                className="input-field pr-12"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-primary dark:text-gray-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-primary dark:text-gray-400 dark:hover:bg-gray-800"
                 aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
               >
                 {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}

@@ -16,15 +16,30 @@
 
 @layer components {
   .btn-primary {
-    @apply px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-opacity-90 transition-all duration-300 shadow-lg shadow-primary/30 active:scale-95;
+    @apply px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-lg shadow-primary/20 active:scale-95;
   }
   
   .glass-card {
-    @apply bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-white/20 dark:border-gray-700/50 shadow-xl rounded-2xl;
+    @apply bg-white/85 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200/80 dark:border-gray-700/60 shadow-lg shadow-slate-200/60 dark:shadow-black/20 rounded-xl;
   }
 
   .input-field {
-    @apply w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50;
+    @apply w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10;
+  }
+
+  .select-field {
+    @apply input-field appearance-none pr-11 bg-no-repeat;
+    background-image: linear-gradient(45deg, transparent 50%, #64748b 50%), linear-gradient(135deg, #64748b 50%, transparent 50%);
+    background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%;
+    background-size: 5px 5px, 5px 5px;
+  }
+
+  .form-label {
+    @apply block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400 mb-1.5;
+  }
+
+  .field-card {
+    @apply rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-gray-700 dark:bg-gray-900/50;
   }
 }
 

@@ -13,10 +13,12 @@ const emptyForm = {
   discountPrice: '',
   discountPercent: '',
   totalQuantity: '50',
+  sizeXS: '0',
   sizeS: '10',
   sizeM: '20',
   sizeL: '15',
   sizeXL: '10',
+  sizeXXL: '0',
   categoryName: 'football',
   teamName: '',
   jerseyType: 'Home',
@@ -180,10 +182,12 @@ const AdminDashboard = () => {
     category: { name: form.categoryName },
     imageUrls: isValidImagePath(form.imageUrl) ? [form.imageUrl] : [],
     sizes: {
+      XS: parseInt(form.sizeXS, 10) || 0,
       S: parseInt(form.sizeS, 10) || 0,
       M: parseInt(form.sizeM, 10) || 0,
       L: parseInt(form.sizeL, 10) || 0,
       XL: parseInt(form.sizeXL, 10) || 0,
+      XXL: parseInt(form.sizeXXL, 10) || 0,
     },
   });
 
@@ -229,10 +233,12 @@ const AdminDashboard = () => {
       discountPrice: String(product.discountPrice ?? ''),
       discountPercent: String(product.discountPercent ?? ''),
       totalQuantity: String(product.totalQuantity ?? '50'),
+      sizeXS: String(product.sizes?.XS ?? '0'),
       sizeS: String(product.sizes?.S ?? '10'),
       sizeM: String(product.sizes?.M ?? '20'),
       sizeL: String(product.sizes?.L ?? '15'),
       sizeXL: String(product.sizes?.XL ?? '10'),
+      sizeXXL: String(product.sizes?.XXL ?? '0'),
       categoryName: product.category?.name || 'football',
       teamName: product.teamName || '',
       jerseyType: product.jerseyType || 'Home',
@@ -343,30 +349,62 @@ const AdminDashboard = () => {
             {editingId ? 'Edit Product' : 'Add New Product'}
           </h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input name="title" required value={form.title} onChange={handleChange} placeholder="Title" className="input-field" />
-            <input name="teamName" required value={form.teamName} onChange={handleChange} placeholder="Team name" className="input-field" />
-            <input name="price" type="number" required value={form.price} onChange={handleChange} placeholder="Price" className="input-field" />
-            <input name="discountPrice" type="number" value={form.discountPrice} onChange={handleChange} placeholder="Discount price" className="input-field" />
-            <input name="discountPercent" type="number" value={form.discountPercent} onChange={handleChange} placeholder="Discount %" className="input-field" />
-            <input name="totalQuantity" type="number" value={form.totalQuantity} onChange={handleChange} placeholder="Total quantity" className="input-field" />
-            <select name="stockStatus" value={form.stockStatus} onChange={handleChange} className="input-field">
-              <option value="">Stock available</option>
-              <option value="OUT_OF_STOCK">Out of stock</option>
-              <option value="COMING_SOON">Stock coming soon</option>
-            </select>
-            <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <input name="sizeS" type="number" min="0" value={form.sizeS} onChange={handleChange} placeholder="Size S qty" className="input-field" />
-              <input name="sizeM" type="number" min="0" value={form.sizeM} onChange={handleChange} placeholder="Size M qty" className="input-field" />
-              <input name="sizeL" type="number" min="0" value={form.sizeL} onChange={handleChange} placeholder="Size L qty" className="input-field" />
-              <input name="sizeXL" type="number" min="0" value={form.sizeXL} onChange={handleChange} placeholder="Size XL qty" className="input-field" />
+            <div>
+              <label className="form-label">Title</label>
+              <input name="title" required value={form.title} onChange={handleChange} placeholder="Manchester United Home Jersey 2026" className="input-field" />
             </div>
-            <select name="categoryName" value={form.categoryName} onChange={handleChange} className="input-field">
-              <option value="football">Football</option>
-              <option value="cricket">Cricket</option>
-              <option value="basketball">Basketball</option>
-              <option value="retro">Retro</option>
-            </select>
-            <input name="jerseyType" value={form.jerseyType} onChange={handleChange} placeholder="Jersey type (Home/Away)" className="input-field" />
+            <div>
+              <label className="form-label">Team name</label>
+              <input name="teamName" required value={form.teamName} onChange={handleChange} placeholder="Manchester United" className="input-field" />
+            </div>
+            <div>
+              <label className="form-label">Price</label>
+              <input name="price" type="number" required value={form.price} onChange={handleChange} placeholder="2999" className="input-field" />
+            </div>
+            <div>
+              <label className="form-label">Discount price</label>
+              <input name="discountPrice" type="number" value={form.discountPrice} onChange={handleChange} placeholder="2499" className="input-field" />
+            </div>
+            <div>
+              <label className="form-label">Discount %</label>
+              <input name="discountPercent" type="number" value={form.discountPercent} onChange={handleChange} placeholder="17" className="input-field" />
+            </div>
+            <div>
+              <label className="form-label">Total quantity</label>
+              <input name="totalQuantity" type="number" value={form.totalQuantity} onChange={handleChange} placeholder="50" className="input-field" />
+            </div>
+            <div>
+              <label className="form-label">Stock status</label>
+              <select name="stockStatus" value={form.stockStatus} onChange={handleChange} className="select-field">
+                <option value="">Stock available</option>
+                <option value="OUT_OF_STOCK">Out of stock</option>
+                <option value="COMING_SOON">Stock coming soon</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Category</label>
+              <select name="categoryName" value={form.categoryName} onChange={handleChange} className="select-field">
+                <option value="football">Football</option>
+                <option value="cricket">Cricket</option>
+                <option value="basketball">Basketball</option>
+                <option value="retro">Retro</option>
+              </select>
+            </div>
+            <div className="md:col-span-2 field-card">
+              <label className="form-label">Size quantity</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <input name="sizeXS" type="number" min="0" value={form.sizeXS} onChange={handleChange} placeholder="XS" className="input-field" />
+                <input name="sizeS" type="number" min="0" value={form.sizeS} onChange={handleChange} placeholder="S" className="input-field" />
+                <input name="sizeM" type="number" min="0" value={form.sizeM} onChange={handleChange} placeholder="M" className="input-field" />
+                <input name="sizeL" type="number" min="0" value={form.sizeL} onChange={handleChange} placeholder="L" className="input-field" />
+                <input name="sizeXL" type="number" min="0" value={form.sizeXL} onChange={handleChange} placeholder="XL" className="input-field" />
+                <input name="sizeXXL" type="number" min="0" value={form.sizeXXL} onChange={handleChange} placeholder="XXL" className="input-field" />
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <label className="form-label">Jersey type</label>
+              <input name="jerseyType" value={form.jerseyType} onChange={handleChange} placeholder="Home / Away / Third" className="input-field" />
+            </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1.5 dark:text-gray-200">Product image</label>
               <div className="flex flex-col sm:flex-row gap-3">
