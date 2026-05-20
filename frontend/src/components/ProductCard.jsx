@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { getImageUrl } from '../utils/imageUrl';
 
 const formatPrice = (price) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
@@ -39,7 +40,7 @@ const ProductCard = ({ product, index }) => {
     >
       <div className="relative h-64 overflow-hidden bg-gray-100 dark:bg-gray-900">
         <img
-          src={product.imageUrls?.[0] || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800'}
+          src={getImageUrl(product.imageUrls?.[0]) || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800'}
           alt={product.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />

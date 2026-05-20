@@ -7,6 +7,7 @@ import ProductCard from '../components/ProductCard';
 const Products = () => {
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || '';
+  const search = searchParams.get('search') || '';
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -16,7 +17,9 @@ const Products = () => {
       setLoading(true);
       setError('');
       try {
-        const params = category ? { category } : {};
+        const params = {};
+        if (category) params.category = category;
+        if (search) params.search = search;
         const { data } = await api.get('/api/products', { params });
         setProducts(data);
       } catch (err) {
@@ -26,11 +29,13 @@ const Products = () => {
       }
     };
     fetchProducts();
-  }, [category]);
+  }, [category, search]);
 
-  const title = category
-    ? `${category.charAt(0).toUpperCase() + category.slice(1)} Jerseys`
-    : 'All Jerseys';
+  const title = search
+    ? `Results for "${search}"`
+    : category
+      ? `${category.charAt(0).toUpperCase() + category.slice(1)} Jerseys`
+      : 'All Jerseys';
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
@@ -75,7 +80,9 @@ const Products = () => {
       )}
 
       {!loading && !error && products.length === 0 && (
-        <p className="text-center text-gray-500 py-16">No products found in this category.</p>
+        <p className="text-center text-gray-500 py-16">
+          {search ? `No jerseys found for "${search}".` : 'No products found in this category.'}
+        </p>
       )}
 
       {!loading && !error && products.length > 0 && (

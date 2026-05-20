@@ -19,19 +19,23 @@ public class ProductController {
     @GetMapping("/products")
     public ResponseEntity<List<Product>> getAllProducts(
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice) {
-        
+
+        String cat = category != null ? category : "";
+        double min = minPrice != null ? minPrice : 0.0;
+        double max = maxPrice != null ? maxPrice : 1000000.0;
+
         List<Product> res;
-        if(category != null || minPrice != null || maxPrice != null) {
-            res = productService.filterProducts(
-                    category != null ? category : "", 
-                    minPrice != null ? minPrice : 0.0, 
-                    maxPrice != null ? maxPrice : 1000000.0);
+        if (search != null && !search.isBlank()) {
+            res = productService.searchProducts(search.trim(), cat, min, max);
+        } else if (category != null || minPrice != null || maxPrice != null) {
+            res = productService.filterProducts(cat, min, max);
         } else {
             res = productService.getAllProducts();
         }
-        
+
         return new ResponseEntity<>(res, HttpStatus.OK);
     }
     

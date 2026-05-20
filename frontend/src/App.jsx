@@ -4,11 +4,14 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import AdminRegister from './pages/AdminRegister';
 import Profile from './pages/Profile';
 import Products from './pages/Products';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Cart from './pages/Cart';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
 import { useState, useEffect } from 'react';
 
 function App() {
@@ -28,14 +31,23 @@ function App() {
     <Router>
       <div className="min-h-screen flex flex-col">
         <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
-        <main className="flex-grow pt-20">
+        <main className="flex-grow pt-24 md:pt-20">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/admin-register" element={<AdminRegister />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/products" element={<Products />} />
             <Route path="/cart" element={<Cart />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
           </Routes>
         </main>
         <Footer />

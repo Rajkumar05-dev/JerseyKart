@@ -20,14 +20,14 @@ const Login = () => {
     setSubmitting(true);
     setError('');
     try {
-      await login(form.email, form.password);
-      navigate('/profile');
+      const data = await login(form.email, form.password);
+      navigate(data.role === 'ADMIN' ? '/admin' : '/profile');
     } catch (err) {
       const msg =
         err.response?.data?.message ||
         err.response?.data ||
         err.message ||
-        'Login failed. Check email and password.';
+        'Invalid email or password.';
       setError(typeof msg === 'string' ? msg : 'Login failed.');
     } finally {
       setSubmitting(false);
@@ -107,6 +107,9 @@ const Login = () => {
           <Link to="/register" className="text-primary font-semibold hover:underline">
             Create one
           </Link>
+        </p>
+        <p className="mt-3 text-center text-xs text-gray-400">
+          Admin demo: admin@jerseykart.com / admin123
         </p>
       </motion.div>
     </div>

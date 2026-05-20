@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Trash2, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { getImageUrl } from '../utils/imageUrl';
 
 const formatPrice = (price) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
@@ -47,7 +48,7 @@ const Cart = () => {
                 className="glass-card p-4 flex gap-4 items-center"
               >
                 <img
-                  src={item.product?.imageUrls?.[0]}
+                  src={getImageUrl(item.product?.imageUrls?.[0])}
                   alt={item.product?.title}
                   className="w-20 h-20 rounded-lg object-cover bg-gray-100 dark:bg-gray-900"
                 />

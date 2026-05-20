@@ -66,4 +66,8 @@ public class ProductService {
     public List<Product> filterProducts(String category, Double minPrice, Double maxPrice) {
         return productRepository.filterProducts(category, minPrice, maxPrice);
     }
+
+    public List<Product> searchProducts(String search, String category, Double minPrice, Double maxPrice) {
+        return productRepository.searchProducts(search, category, minPrice, maxPrice);
+    }
 }

@@ -1,10 +1,10 @@
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
-  const { user, loading, logout, isAuthenticated } = useAuth();
+  const { user, loading, logout, isAuthenticated, isAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -40,9 +40,15 @@ const Profile = () => {
           {user.firstName ? `Hi, ${user.firstName}!` : 'Your Profile'}
         </h1>
         <p className="text-gray-500 dark:text-gray-400 mt-2">{user.email}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 capitalize">Role: {user.role?.toLowerCase()}</p>
         <p className="text-sm text-green-600 dark:text-green-400 mt-4 font-medium">
           You are logged in successfully.
         </p>
+        {isAdmin && (
+          <Link to="/admin" className="btn-primary inline-flex mt-6">
+            Go to Admin Dashboard
+          </Link>
+        )}
         <button
           type="button"
           onClick={logout}

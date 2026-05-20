@@ -1,6 +1,7 @@
 package com.jerseykart.backend.controller;
 
 import com.jerseykart.backend.config.JwtProvider;
+import com.jerseykart.backend.dto.AuthResponse;
 import com.jerseykart.backend.entity.Cart;
 import com.jerseykart.backend.entity.Role;
 import com.jerseykart.backend.entity.User;
@@ -23,16 +24,16 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-    
+
     @Autowired
     private UserRepository userRepository;
-    
+
     @Autowired
     private JwtProvider jwtProvider;
-    
+
     @Autowired
     private PasswordEncoder passwordEncoder;
-    
+
     @Autowired
     private CustomUserServiceImplementation customUserService;
 
@@ -40,20 +41,29 @@ public class AuthController {
     private CartRepository cartRepository;
 
     @PostMapping("/signup")
-    public ResponseEntity<String> createUserHandler(@RequestBody User user) {
-        
+    public ResponseEntity<AuthResponse> createUserHandler(@RequestBody User user) {
+        return createUserWithRole(user, Role.USER);
+    }
+
+    @PostMapping("/admin/signup")
+    public ResponseEntity<AuthResponse> createAdminHandler(@RequestBody User user) {
+        return createUserWithRole(user, Role.ADMIN);
+    }
+
+    private ResponseEntity<AuthResponse> createUserWithRole(User user, Role role) {
+
         Optional<User> isEmailExist = userRepository.findByEmail(user.getEmail());
-        
+
         if (isEmailExist.isPresent()) {
-            return new ResponseEntity<>("Email is already used with another account", HttpStatus.BAD_REQUEST);
+            throw new RuntimeException("Email is already used with another account");
         }
-        
+
         User createdUser = new User();
         createdUser.setEmail(user.getEmail());
         createdUser.setPassword(passwordEncoder.encode(user.getPassword()));
         createdUser.setFirstName(user.getFirstName());
         createdUser.setLastName(user.getLastName());
-        createdUser.setRole(Role.USER);
+        createdUser.setRole(role);
 
         User savedUser = userRepository.save(createdUser);
 
@@ -66,29 +76,58 @@ public class AuthController {
 
         String token = jwtProvider.generateToken(authentication);
 
-        return new ResponseEntity<>(token, HttpStatus.CREATED);
+        return new ResponseEntity<>(buildAuthResponse(savedUser, token), HttpStatus.CREATED);
     }
-    
+
     @PostMapping("/signin")
-    public ResponseEntity<String> loginUserHandler(@RequestBody User user) {
-        
+    public ResponseEntity<AuthResponse> loginUserHandler(@RequestBody User user) {
+
         Authentication authentication = authenticate(user.getEmail(), user.getPassword());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        User dbUser = userRepository.findByEmail(user.getEmail())
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
         String token = jwtProvider.generateToken(authentication);
 
-        return new ResponseEntity<>(token, HttpStatus.OK);
+        return new ResponseEntity<>(buildAuthResponse(dbUser, token), HttpStatus.OK);
     }
-    
+
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse> getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+        return ResponseEntity.ok(AuthResponse.builder()
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole() != null ? user.getRole().name() : "USER")
+                .build());
+    }
+
+    private AuthResponse buildAuthResponse(User user, String token) {
+        return AuthResponse.builder()
+                .token(token)
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole() != null ? user.getRole().name() : "USER")
+                .build();
+    }
+
     private Authentication authenticate(String username, String password) {
         UserDetails userDetails = customUserService.loadUserByUsername(username);
 
-        if(userDetails == null) {
-            throw new BadCredentialsException("Invalid Username");
+        if (userDetails == null) {
+            throw new BadCredentialsException("Invalid email or password");
         }
-        
-        if(!passwordEncoder.matches(password, userDetails.getPassword())) {
-            throw new BadCredentialsException("Invalid password...");
+
+        if (!passwordEncoder.matches(password, userDetails.getPassword())) {
+            throw new BadCredentialsException("Invalid email or password");
         }
 
         return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

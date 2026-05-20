@@ -22,6 +22,10 @@
   .glass-card {
     @apply bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-white/20 dark:border-gray-700/50 shadow-xl rounded-2xl;
   }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50;
+  }
 }
 
 /* Custom Scrollbar */
