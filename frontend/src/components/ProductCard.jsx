@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -8,13 +8,28 @@ import { getImageUrl } from '../utils/imageUrl';
 const formatPrice = (price) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
 
+const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
 const ProductCard = ({ product, index }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { addToCart, loading } = useCart();
-  const sizes = product.sizes ? Object.keys(product.sizes) : ['S', 'M', 'L', 'XL'];
-  const [size, setSize] = useState(sizes[0] || 'M');
+  const sizes = useMemo(() => {
+    const entries = product.sizes ? Object.entries(product.sizes) : [['S', 10], ['M', 10], ['L', 10], ['XL', 10]];
+    return entries.sort(([a], [b]) => {
+      const aIndex = SIZE_ORDER.indexOf(a);
+      const bIndex = SIZE_ORDER.indexOf(b);
+      return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+    });
+  }, [product.sizes]);
+  const firstAvailableSize = sizes.find(([, quantity]) => Number(quantity) > 0)?.[0] || sizes[0]?.[0] || 'M';
+  const [size, setSize] = useState(firstAvailableSize);
   const [feedback, setFeedback] = useState('');
+  const isUnavailable = product.stockStatus === 'OUT_OF_STOCK' || product.totalQuantity === 0;
+
+  useEffect(() => {
+    setSize(firstAvailableSize);
+  }, [firstAvailableSize]);
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -22,6 +37,11 @@ const ProductCard = ({ product, index }) => {
       return;
     }
     setFeedback('');
+    if (isUnavailable) {
+      setFeedback('This product is out of stock');
+      return;
+    }
+
     const result = await addToCart(product.id, size, 1);
     if (result.success) {
       setFeedback('Added to cart!');
@@ -67,21 +87,37 @@ const ProductCard = ({ product, index }) => {
           )}
         </motion.div>
         <div className="mt-4">
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Size</label>
-          <select
-            value={size}
-            onChange={(e) => setSize(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-primary/50"
-          >
-            {sizes.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Size</label>
+            {isUnavailable && <span className="text-xs font-semibold text-red-500">Out of stock</span>}
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {sizes.map(([sizeName, quantity]) => {
+              const disabled = isUnavailable || Number(quantity) <= 0;
+              const selected = size === sizeName;
+              return (
+                <button
+                  key={sizeName}
+                  type="button"
+                  onClick={() => setSize(sizeName)}
+                  disabled={disabled}
+                  className={`h-10 rounded-lg border text-sm font-semibold transition ${
+                    selected
+                      ? 'border-primary bg-primary text-white shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-primary hover:text-primary dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'
+                  } ${disabled ? 'cursor-not-allowed opacity-40 hover:border-gray-200 hover:text-gray-700' : ''}`}
+                  title={`${quantity} in stock`}
+                >
+                  {sizeName}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <button
           type="button"
           onClick={handleAddToCart}
-          disabled={loading}
+          disabled={loading || isUnavailable}
           className="btn-primary w-full mt-4 !py-2.5 text-sm disabled:opacity-60"
         >
           {loading ? 'Adding...' : 'Add to Cart'}

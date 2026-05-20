@@ -40,7 +40,7 @@ public class ProductService {
         Optional<Product> productOpt = productRepository.findById(productId);
         if (productOpt.isPresent()) {
             Product product = productOpt.get();
-            if(req.getTotalQuantity() != null && req.getTotalQuantity() != 0) {
+            if(req.getTotalQuantity() != null) {
                 product.setTotalQuantity(req.getTotalQuantity());
             }
             if(req.getPrice() != null) {
@@ -48,6 +48,18 @@ public class ProductService {
             }
             if(req.getDiscountPrice() != null) {
                 product.setDiscountPrice(req.getDiscountPrice());
+            }
+            product.setTitle(req.getTitle());
+            product.setDescription(req.getDescription());
+            product.setDiscountPercent(req.getDiscountPercent());
+            product.setTeamName(req.getTeamName());
+            product.setJerseyType(req.getJerseyType());
+            product.setImageUrls(req.getImageUrls());
+            product.setSizes(req.getSizes());
+            product.setStockStatus(req.getStockStatus());
+            if (req.getCategory() != null && req.getCategory().getName() != null) {
+                Optional<Category> optCategory = categoryRepository.findByName(req.getCategory().getName());
+                product.setCategory(optCategory.orElseGet(() -> categoryRepository.save(req.getCategory())));
             }
             return productRepository.save(product);
         }

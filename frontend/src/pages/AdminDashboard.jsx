@@ -13,9 +13,14 @@ const emptyForm = {
   discountPrice: '',
   discountPercent: '',
   totalQuantity: '50',
+  sizeS: '10',
+  sizeM: '20',
+  sizeL: '15',
+  sizeXL: '10',
   categoryName: 'football',
   teamName: '',
   jerseyType: 'Home',
+  stockStatus: '',
   imageUrl: '',
 };
 
@@ -23,6 +28,31 @@ const formatPrice = (price) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
 
 const isValidImagePath = (url) => /^https?:\/\//i.test(url) || url.startsWith('/uploads/');
+
+const getStockStatusLabel = (product) => {
+  if (product.stockStatus === 'OUT_OF_STOCK' || product.totalQuantity === 0) return 'Out of stock';
+  if (product.stockStatus === 'COMING_SOON') return 'Stock coming soon';
+  return 'Stock available';
+};
+
+const getSizeSummary = (sizes) => {
+  if (!sizes) return '';
+  return Object.entries(sizes)
+    .filter(([, quantity]) => Number(quantity) > 0)
+    .map(([size, quantity]) => `${size}: ${quantity}`)
+    .join(', ');
+};
+
+const formatErrorDetails = (err) => {
+  if (!err) return 'Unknown error';
+  if (typeof err === 'string') return err;
+  if (err.response) {
+    const data = err.response.data;
+    const message = typeof data === 'string' ? data : data?.message || data?.error || err.message;
+    return `Status ${err.response.status}: ${message || 'Request failed'}`;
+  }
+  return err.message || 'Unknown error';
+};
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -37,6 +67,20 @@ const AdminDashboard = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageUploadStatus, setImageUploadStatus] = useState('');
   const [imageUploadMessage, setImageUploadMessage] = useState('');
+  const [errorLogs, setErrorLogs] = useState([]);
+
+  const addErrorLog = (source, err) => {
+    const details = formatErrorDetails(err);
+    setErrorLogs((prev) => [
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        time: new Date().toLocaleTimeString(),
+        source,
+        details,
+      },
+      ...prev,
+    ].slice(0, 20));
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -44,8 +88,9 @@ const AdminDashboard = () => {
     try {
       const { data } = await api.get('/api/admin/products/all');
       setProducts(data);
-    } catch {
+    } catch (err) {
       setError('Failed to load products. Check admin login.');
+      addErrorLog('Load products', err);
     } finally {
       setLoading(false);
     }
@@ -53,6 +98,23 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    const handleWindowError = (event) => {
+      addErrorLog('Frontend error', event.error || event.message);
+    };
+    const handleUnhandledRejection = (event) => {
+      addErrorLog('Frontend promise error', event.reason);
+    };
+
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   useEffect(() => {
@@ -98,6 +160,7 @@ const AdminDashboard = () => {
       setError(message);
       setImageUploadStatus('error');
       setImageUploadMessage(message);
+      addErrorLog('Image upload', err);
     } finally {
       setUploadingImage(false);
       e.target.value = '';
@@ -113,9 +176,15 @@ const AdminDashboard = () => {
     totalQuantity: parseInt(form.totalQuantity, 10) || 50,
     teamName: form.teamName,
     jerseyType: form.jerseyType,
+    stockStatus: form.stockStatus,
     category: { name: form.categoryName },
     imageUrls: isValidImagePath(form.imageUrl) ? [form.imageUrl] : [],
-    sizes: { S: 10, M: 20, L: 15, XL: 10 },
+    sizes: {
+      S: parseInt(form.sizeS, 10) || 0,
+      M: parseInt(form.sizeM, 10) || 0,
+      L: parseInt(form.sizeL, 10) || 0,
+      XL: parseInt(form.sizeXL, 10) || 0,
+    },
   });
 
   const handleSubmit = async (e) => {
@@ -143,6 +212,7 @@ const AdminDashboard = () => {
         err.message ||
         'Failed to save product';
       setError(typeof msg === 'string' ? msg : 'Failed to save product');
+      addErrorLog(editingId ? 'Update product' : 'Create product', err);
     } finally {
       setSubmitting(false);
     }
@@ -159,9 +229,14 @@ const AdminDashboard = () => {
       discountPrice: String(product.discountPrice ?? ''),
       discountPercent: String(product.discountPercent ?? ''),
       totalQuantity: String(product.totalQuantity ?? '50'),
+      sizeS: String(product.sizes?.S ?? '10'),
+      sizeM: String(product.sizes?.M ?? '20'),
+      sizeL: String(product.sizes?.L ?? '15'),
+      sizeXL: String(product.sizes?.XL ?? '10'),
       categoryName: product.category?.name || 'football',
       teamName: product.teamName || '',
       jerseyType: product.jerseyType || 'Home',
+      stockStatus: product.stockStatus || '',
       imageUrl: product.imageUrls?.[0] || '',
     });
     setShowForm(true);
@@ -172,8 +247,9 @@ const AdminDashboard = () => {
     try {
       await api.delete(`/api/admin/products/${id}`);
       await fetchProducts();
-    } catch {
+    } catch (err) {
       setError('Failed to delete product');
+      addErrorLog('Delete product', err);
     }
   };
 
@@ -223,6 +299,39 @@ const AdminDashboard = () => {
         <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 text-sm">{error}</div>
       )}
 
+      <div className="glass-card p-5 mb-8">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 className="font-bold dark:text-white">Error Log</h2>
+            <p className="text-sm text-gray-500">Frontend aur backend errors yaha dikhenge</p>
+          </div>
+          {errorLogs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setErrorLogs([])}
+              className="px-3 py-1.5 rounded-lg border text-sm dark:border-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {errorLogs.length === 0 ? (
+          <p className="text-sm text-gray-500">No errors yet.</p>
+        ) : (
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {errorLogs.map((log) => (
+              <div key={log.id} className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
+                <div className="flex flex-wrap items-center gap-2 font-semibold">
+                  <span>{log.time}</span>
+                  <span>{log.source}</span>
+                </div>
+                <p className="mt-1 break-words">{log.details}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {showForm && (
         <motion.div
           ref={formRef}
@@ -239,7 +348,18 @@ const AdminDashboard = () => {
             <input name="price" type="number" required value={form.price} onChange={handleChange} placeholder="Price" className="input-field" />
             <input name="discountPrice" type="number" value={form.discountPrice} onChange={handleChange} placeholder="Discount price" className="input-field" />
             <input name="discountPercent" type="number" value={form.discountPercent} onChange={handleChange} placeholder="Discount %" className="input-field" />
-            <input name="totalQuantity" type="number" value={form.totalQuantity} onChange={handleChange} placeholder="Stock" className="input-field" />
+            <input name="totalQuantity" type="number" value={form.totalQuantity} onChange={handleChange} placeholder="Total quantity" className="input-field" />
+            <select name="stockStatus" value={form.stockStatus} onChange={handleChange} className="input-field">
+              <option value="">Stock available</option>
+              <option value="OUT_OF_STOCK">Out of stock</option>
+              <option value="COMING_SOON">Stock coming soon</option>
+            </select>
+            <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <input name="sizeS" type="number" min="0" value={form.sizeS} onChange={handleChange} placeholder="Size S qty" className="input-field" />
+              <input name="sizeM" type="number" min="0" value={form.sizeM} onChange={handleChange} placeholder="Size M qty" className="input-field" />
+              <input name="sizeL" type="number" min="0" value={form.sizeL} onChange={handleChange} placeholder="Size L qty" className="input-field" />
+              <input name="sizeXL" type="number" min="0" value={form.sizeXL} onChange={handleChange} placeholder="Size XL qty" className="input-field" />
+            </div>
             <select name="categoryName" value={form.categoryName} onChange={handleChange} className="input-field">
               <option value="football">Football</option>
               <option value="cricket">Cricket</option>
@@ -320,7 +440,25 @@ const AdminDashboard = () => {
                   </td>
                   <td className="p-4 capitalize">{p.category?.name}</td>
                   <td className="p-4">{formatPrice(p.discountPrice ?? p.price)}</td>
-                  <td className="p-4">{p.totalQuantity}</td>
+                  <td className="p-4">
+                    <div className="space-y-1">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          getStockStatusLabel(p) === 'Out of stock'
+                            ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-300'
+                            : getStockStatusLabel(p) === 'Stock coming soon'
+                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
+                              : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
+                        }`}
+                      >
+                        {getStockStatusLabel(p)}
+                      </span>
+                      {getSizeSummary(p.sizes) && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{getSizeSummary(p.sizes)}</p>
+                      )}
+                      <p className="text-xs text-gray-400">Qty: {p.totalQuantity}</p>
+                    </div>
+                  </td>
                   <td className="p-4">
                     <div className="flex gap-2">
                       <button type="button" onClick={() => handleEdit(p)} className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">

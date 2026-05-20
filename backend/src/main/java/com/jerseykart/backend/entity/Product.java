@@ -34,6 +34,8 @@ public class Product {
     @Column(nullable = false)
     private Integer totalQuantity; // total stock
 
+    private String stockStatus; // OUT_OF_STOCK, COMING_SOON, or blank when available
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private Category category;
