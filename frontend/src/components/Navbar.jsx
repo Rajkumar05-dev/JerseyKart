@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Search, User, Menu, X, Sun, Moon, LogOut } from 'lucide-react';
+import { ShoppingCart, Search, User, Menu, X, Sun, Moon, LogOut, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 
 const Navbar = ({ darkMode, setDarkMode }) => {
   const { isAuthenticated, logout, user, isAdmin } = useAuth();
   const { cartCount } = useCart();
+  const { wishlistCount } = useWishlist();
   const navigate = useNavigate();
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -121,6 +123,17 @@ const Navbar = ({ darkMode, setDarkMode }) => {
             </div>
           )}
 
+          {isAuthenticated && (
+            <Link to="/wishlist" className="relative hover:text-primary transition-colors dark:text-white" title="Wishlist">
+              <Heart size={22} className={wishlistCount > 0 ? "fill-primary text-primary" : ""} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex justify-center items-center">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+          )}
+
           <Link to="/cart" className="relative hover:text-primary transition-colors dark:text-white">
             <ShoppingCart size={22} />
             {cartCount > 0 && (
@@ -159,6 +172,13 @@ const Navbar = ({ darkMode, setDarkMode }) => {
                     Admin Dashboard
                   </Link>
                 )}
+                <Link
+                  to="/wishlist"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2 hover:text-primary transition-colors"
+                >
+                  <Heart size={20} /> Wishlist
+                </Link>
                 <Link
                   to="/profile"
                   onClick={() => setIsMobileMenuOpen(false)}

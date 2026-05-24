@@ -5,8 +5,10 @@ import com.jerseykart.backend.dto.AuthResponse;
 import com.jerseykart.backend.entity.Cart;
 import com.jerseykart.backend.entity.Role;
 import com.jerseykart.backend.entity.User;
+import com.jerseykart.backend.entity.Wishlist;
 import com.jerseykart.backend.repository.CartRepository;
 import com.jerseykart.backend.repository.UserRepository;
+import com.jerseykart.backend.repository.WishlistRepository;
 import com.jerseykart.backend.service.CustomUserServiceImplementation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -42,6 +44,9 @@ public class AuthController {
 
     @Autowired
     private CartRepository cartRepository;
+
+    @Autowired
+    private WishlistRepository wishlistRepository;
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> createUserHandler(@Valid @RequestBody SignupRequest request) {
@@ -83,6 +88,10 @@ public class AuthController {
         Cart cart = new Cart();
         cart.setUser(savedUser);
         cartRepository.save(cart);
+
+        Wishlist wishlist = new Wishlist();
+        wishlist.setUser(savedUser);
+        wishlistRepository.save(wishlist);
 
         Authentication authentication = authenticate(savedUser.getEmail(), user.getPassword());
         SecurityContextHolder.getContext().setAuthentication(authentication);

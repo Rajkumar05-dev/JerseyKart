@@ -9,7 +9,9 @@ import Profile from './pages/Profile';
 import Products from './pages/Products';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { WishlistProvider } from './context/WishlistContext';
 import Cart from './pages/Cart';
+import Wishlist from './pages/Wishlist';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRoute from './components/AdminRoute';
 import { useState, useEffect } from 'react';
@@ -28,6 +30,7 @@ function App() {
   return (
     <AuthProvider>
     <CartProvider>
+    <WishlistProvider>
     <Router>
       <div className="min-h-screen flex flex-col">
         <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
@@ -39,6 +42,7 @@ function App() {
             <Route path="/admin-register" element={<AdminRegister />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/cart" element={<Cart />} />
             <Route
               path="/admin"
@@ -52,9 +56,10 @@ function App() {
         </main>
         <Footer />
       </div>
-    </Router>
-    </CartProvider>
-    </AuthProvider>
+     </Router>
+     </WishlistProvider>
+     </CartProvider>
+     </AuthProvider>
   );
 }
 

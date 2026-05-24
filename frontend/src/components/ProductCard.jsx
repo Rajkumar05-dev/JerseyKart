@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { getImageUrl } from '../utils/imageUrl';
+import { Heart } from 'lucide-react';
 
 const formatPrice = (price) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
@@ -14,6 +16,8 @@ const ProductCard = ({ product, index }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { addToCart, loading } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isFav = isInWishlist(product.id);
   const sizes = useMemo(() => {
     const entries = product.sizes ? Object.entries(product.sizes) : [['S', 10], ['M', 10], ['L', 10], ['XL', 10]];
     return entries.sort(([a], [b]) => {
@@ -51,6 +55,19 @@ const ProductCard = ({ product, index }) => {
     }
   };
 
+  const handleToggleWishlist = async (e) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    const result = await toggleWishlist(product.id);
+    if (result && !result.success) {
+      setFeedback(result.message || 'Could not update wishlist');
+      setTimeout(() => setFeedback(''), 3000);
+    }
+  };
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -64,8 +81,16 @@ const ProductCard = ({ product, index }) => {
           alt={product.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
+        <button
+          type="button"
+          onClick={handleToggleWishlist}
+          className="absolute top-3 right-3 p-2 bg-white/90 dark:bg-gray-900/90 text-red-500 rounded-full shadow-md backdrop-blur-sm transition hover:scale-110 active:scale-95 z-10"
+          aria-label="Toggle wishlist"
+        >
+          <Heart size={18} className={isFav ? "fill-red-500 text-red-500" : ""} />
+        </button>
         {product.discountPercent > 0 && (
-          <span className="absolute top-3 left-3 bg-primary text-white text-xs font-bold px-2 py-1 rounded">
+          <span className="absolute top-3 left-3 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded">
             {product.discountPercent}% OFF
           </span>
         )}
