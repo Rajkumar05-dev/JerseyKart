@@ -18,6 +18,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import com.jerseykart.backend.dto.LoginRequest;
+import com.jerseykart.backend.dto.SignupRequest;
 
 import java.util.Optional;
 
@@ -41,12 +44,22 @@ public class AuthController {
     private CartRepository cartRepository;
 
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> createUserHandler(@RequestBody User user) {
+    public ResponseEntity<AuthResponse> createUserHandler(@Valid @RequestBody SignupRequest request) {
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword());
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
         return createUserWithRole(user, Role.USER);
     }
 
     @PostMapping("/admin/signup")
-    public ResponseEntity<AuthResponse> createAdminHandler(@RequestBody User user) {
+    public ResponseEntity<AuthResponse> createAdminHandler(@Valid @RequestBody SignupRequest request) {
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword());
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
         return createUserWithRole(user, Role.ADMIN);
     }
 
@@ -80,12 +93,12 @@ public class AuthController {
     }
 
     @PostMapping("/signin")
-    public ResponseEntity<AuthResponse> loginUserHandler(@RequestBody User user) {
+    public ResponseEntity<AuthResponse> loginUserHandler(@Valid @RequestBody LoginRequest request) {
 
-        Authentication authentication = authenticate(user.getEmail(), user.getPassword());
+        Authentication authentication = authenticate(request.getEmail(), request.getPassword());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        User dbUser = userRepository.findByEmail(user.getEmail())
+        User dbUser = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("User not found"));
 
         String token = jwtProvider.generateToken(authentication);

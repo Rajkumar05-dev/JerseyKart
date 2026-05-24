@@ -26,6 +26,30 @@ const AdminRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // First Name validation
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!nameRegex.test(form.firstName)) {
+      setError('First name must contain only alphabets and spaces.');
+      return;
+    }
+
+    // Last Name validation (if provided)
+    if (form.lastName) {
+      const optionalNameRegex = /^[a-zA-Z\s]*$/;
+      if (!optionalNameRegex.test(form.lastName)) {
+        setError('Last name must contain only alphabets and spaces.');
+        return;
+      }
+    }
+
+    // Password validation (min 8 characters, at least one letter, one digit, and one special character)
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s]).{8,}$/;
+    if (!passwordRegex.test(form.password)) {
+      setError('Password must be at least 8 characters long, and contain at least one letter, one digit, and one special character.');
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match.');
       return;
@@ -118,10 +142,10 @@ const AdminRegister = () => {
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 required
-                minLength={6}
+                minLength={8}
                 value={form.password}
                 onChange={handleChange}
-                placeholder="Min 6 characters"
+                placeholder="Min 8 characters with letter, digit & special character"
                 className="input-field pr-12"
               />
               <button
@@ -142,7 +166,7 @@ const AdminRegister = () => {
                 type={showConfirmPassword ? 'text' : 'password'}
                 name="confirmPassword"
                 required
-                minLength={6}
+                minLength={8}
                 value={form.confirmPassword}
                 onChange={handleChange}
                 placeholder="Repeat password"
