@@ -102,6 +102,13 @@ public class CartService {
         findUserCart(userId);
     }
 
+    @Transactional
+    public void clearCart(Long userId) {
+        Cart cart = getOrCreateCart(userId);
+        cart.getCartItems().clear();
+        cartRepository.save(cart);
+    }
+
     private Cart getOrCreateCart(Long userId) {
         Cart cart = cartRepository.findByUserId(userId);
         if (cart == null) {

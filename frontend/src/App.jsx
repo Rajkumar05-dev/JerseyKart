@@ -12,6 +12,7 @@ import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import Cart from './pages/Cart';
 import Wishlist from './pages/Wishlist';
+import Orders from './pages/Orders';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRoute from './components/AdminRoute';
 import { useState, useEffect } from 'react';
@@ -43,6 +44,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/products" element={<Products />} />
             <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/orders" element={<Orders />} />
             <Route path="/cart" element={<Cart />} />
             <Route
               path="/admin"

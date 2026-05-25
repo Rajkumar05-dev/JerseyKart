@@ -1,16 +1,34 @@
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trash2, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import api from '../api/axios';
 import { getImageUrl } from '../utils/imageUrl';
 
 const formatPrice = (price) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
 
+const loadRazorpayScript = (src) =>
+  new Promise((resolve) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
 const Cart = () => {
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const { cart, removeFromCart } = useCart();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const { cart, removeFromCart, refreshCart } = useCart();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   if (authLoading) {
     return <p className="text-center py-20 text-gray-500">Loading...</p>;
@@ -21,6 +39,75 @@ const Cart = () => {
   }
 
   const items = cart?.cartItems || [];
+
+  const handleCheckout = async () => {
+    setCheckoutError('');
+    if (!cart || cart.totalDiscountedPrice <= 0) {
+      setCheckoutError('Please add items to your cart before checkout.');
+      return;
+    }
+
+    setCheckoutLoading(true);
+
+    try {
+      const { data } = await api.post('/api/payment/create-order', {
+        shippingAddress: {
+          firstName: user?.firstName || 'Customer',
+          lastName: user?.lastName || '',
+          streetAddress: 'Not provided',
+          city: 'Not provided',
+          state: 'Not provided',
+          zipCode: '000000',
+          mobile: '',
+        },
+      });
+
+      const isLoaded = await loadRazorpayScript('https://checkout.razorpay.com/v1/checkout.js');
+      if (!isLoaded) {
+        setCheckoutError('Unable to load Razorpay checkout. Please try again.');
+        return;
+      }
+
+      const options = {
+        key: data.razorpayKey,
+        amount: data.amount,
+        currency: data.currency,
+        order_id: data.razorpayOrderId,
+        name: 'JerseyKart',
+        description: 'Complete your payment',
+        prefill: {
+          name: data.userName,
+          email: data.userEmail,
+          contact: data.userContact || undefined,
+        },
+        theme: {
+          color: '#2563eb',
+        },
+        handler: async function (response) {
+          try {
+            await api.post('/api/payment/verify', {
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            await refreshCart();
+            window.alert('Payment successful! Your order is confirmed.');
+          } catch (verifyError) {
+            console.error('Payment verification failed', verifyError);
+            setCheckoutError('Payment verification failed. Please contact support.');
+          }
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Checkout failed. Please try again.';
+      setCheckoutError(msg);
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -85,8 +172,16 @@ const Cart = () => {
                 {formatPrice(cart.totalPrice)}
               </p>
             )}
-            <button type="button" className="btn-primary w-full mt-6">
-              Proceed to Checkout
+            {checkoutError && (
+              <p className="text-sm text-red-500 mt-4">{checkoutError}</p>
+            )}
+            <button
+              type="button"
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+              className="btn-primary w-full mt-6"
+            >
+              {checkoutLoading ? 'Processing...' : 'Proceed to Checkout'}
             </button>
           </motion.div>
         </>

@@ -93,6 +93,12 @@ const Navbar = ({ darkMode, setDarkMode }) => {
                 </Link>
               )}
               <Link
+                to="/orders"
+                className="hidden sm:block text-sm font-semibold hover:text-primary transition-colors dark:text-white"
+              >
+                Orders
+              </Link>
+              <Link
                 to="/profile"
                 className="hidden sm:flex items-center gap-2 hover:text-primary transition-colors text-sm font-medium dark:text-white"
                 title={user?.email}
@@ -178,6 +184,13 @@ const Navbar = ({ darkMode, setDarkMode }) => {
                   className="flex items-center gap-2 hover:text-primary transition-colors"
                 >
                   <Heart size={20} /> Wishlist
+                </Link>
+                <Link
+                  to="/orders"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2 hover:text-primary transition-colors"
+                >
+                  📦 Orders
                 </Link>
                 <Link
                   to="/profile"
