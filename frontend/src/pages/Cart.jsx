@@ -38,6 +38,33 @@ const Cart = () => {
     zipCode: '',
     mobile: user?.mobile || '',
   });
+  const [showAddressForm, setShowAddressForm] = useState(true);
+  const [addressSaved, setAddressSaved] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('jerseykartShippingAddress');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const isComplete = parsed?.streetAddress?.trim() && parsed?.city?.trim() && parsed?.zipCode?.trim() && parsed?.mobile?.trim();
+        if (isComplete) {
+          setShippingAddress({
+            firstName: parsed.firstName || user?.firstName || '',
+            lastName: parsed.lastName || user?.lastName || '',
+            streetAddress: parsed.streetAddress || '',
+            city: parsed.city || '',
+            state: parsed.state || '',
+            zipCode: parsed.zipCode || '',
+            mobile: parsed.mobile || user?.mobile || '',
+          });
+          setShowAddressForm(false);
+          setAddressSaved(true);
+        }
+      } catch {
+        // ignore malformed saved address
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -49,6 +76,21 @@ const Cart = () => {
       }));
     }
   }, [user]);
+
+  const handleSaveAddress = () => {
+    setCheckoutError('');
+    const requiredFields = ['streetAddress', 'city', 'zipCode', 'mobile'];
+    const missingField = requiredFields.find((field) => !shippingAddress[field]?.trim());
+    if (missingField) {
+      setCheckoutError('Please fill in all required address fields before saving.');
+      return false;
+    }
+
+    localStorage.setItem('jerseykartShippingAddress', JSON.stringify(shippingAddress));
+    setAddressSaved(true);
+    setShowAddressForm(false);
+    return true;
+  };
 
   if (authLoading) {
     return <p className="text-center py-20 text-gray-500">Loading...</p>;
@@ -67,10 +109,7 @@ const Cart = () => {
       return;
     }
 
-    const requiredFields = ['streetAddress', 'city', 'zipCode', 'mobile'];
-    const missingField = requiredFields.find((field) => !shippingAddress[field]?.trim());
-    if (missingField) {
-      setCheckoutError('Please enter your shipping address and location before checkout.');
+    if (!addressSaved && !handleSaveAddress()) {
       return;
     }
 
@@ -150,81 +189,109 @@ const Cart = () => {
         </motion.div>
       ) : (
         <>
-          <div className="glass-card p-6 mb-6">
-            <h2 className="text-2xl font-semibold dark:text-white mb-4">Shipping Address</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-sm text-gray-500 dark:text-gray-400">First Name</span>
-                <input
-                  type="text"
-                  value={shippingAddress.firstName}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, firstName: e.target.value }))}
-                  className="input-field mt-1 w-full"
-                  placeholder="First name"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Last Name</span>
-                <input
-                  type="text"
-                  value={shippingAddress.lastName}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, lastName: e.target.value }))}
-                  className="input-field mt-1 w-full"
-                  placeholder="Last name"
-                />
-              </label>
-              <label className="sm:col-span-2 block">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Street Address</span>
-                <input
-                  type="text"
-                  value={shippingAddress.streetAddress}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, streetAddress: e.target.value }))}
-                  className="input-field mt-1 w-full"
-                  placeholder="Street address"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-500 dark:text-gray-400">City</span>
-                <input
-                  type="text"
-                  value={shippingAddress.city}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
-                  className="input-field mt-1 w-full"
-                  placeholder="City"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-500 dark:text-gray-400">State</span>
-                <input
-                  type="text"
-                  value={shippingAddress.state}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))}
-                  className="input-field mt-1 w-full"
-                  placeholder="State"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Zip Code</span>
-                <input
-                  type="text"
-                  value={shippingAddress.zipCode}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, zipCode: e.target.value }))}
-                  className="input-field mt-1 w-full"
-                  placeholder="Zip code"
-                />
-              </label>
-              <label className="sm:col-span-2 block">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Mobile</span>
-                <input
-                  type="text"
-                  value={shippingAddress.mobile}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, mobile: e.target.value }))}
-                  className="input-field mt-1 w-full"
-                  placeholder="Mobile number"
-                />
-              </label>
+          {addressSaved && !showAddressForm ? (
+            <div className="glass-card p-6 mb-6">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h2 className="text-2xl font-semibold dark:text-white mb-2">Shipping Address</h2>
+                  <p className="text-gray-500 dark:text-gray-400">{shippingAddress.firstName} {shippingAddress.lastName}</p>
+                  <p className="text-gray-500 dark:text-gray-400">{shippingAddress.streetAddress}</p>
+                  <p className="text-gray-500 dark:text-gray-400">{shippingAddress.city}, {shippingAddress.state} {shippingAddress.zipCode}</p>
+                  <p className="text-gray-500 dark:text-gray-400">{shippingAddress.mobile}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddressForm(true)}
+                  className="px-5 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium w-max"
+                >
+                  Edit Address
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="glass-card p-6 mb-6">
+              <h2 className="text-2xl font-semibold dark:text-white mb-4">Shipping Address</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">First Name</span>
+                  <input
+                    type="text"
+                    value={shippingAddress.firstName}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, firstName: e.target.value }))}
+                    className="input-field mt-1 w-full"
+                    placeholder="First name"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Last Name</span>
+                  <input
+                    type="text"
+                    value={shippingAddress.lastName}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, lastName: e.target.value }))}
+                    className="input-field mt-1 w-full"
+                    placeholder="Last name"
+                  />
+                </label>
+                <label className="sm:col-span-2 block">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Street Address</span>
+                  <input
+                    type="text"
+                    value={shippingAddress.streetAddress}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, streetAddress: e.target.value }))}
+                    className="input-field mt-1 w-full"
+                    placeholder="Street address"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">City</span>
+                  <input
+                    type="text"
+                    value={shippingAddress.city}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
+                    className="input-field mt-1 w-full"
+                    placeholder="City"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">State</span>
+                  <input
+                    type="text"
+                    value={shippingAddress.state}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))}
+                    className="input-field mt-1 w-full"
+                    placeholder="State"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Zip Code</span>
+                  <input
+                    type="text"
+                    value={shippingAddress.zipCode}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, zipCode: e.target.value }))}
+                    className="input-field mt-1 w-full"
+                    placeholder="Zip code"
+                  />
+                </label>
+                <label className="sm:col-span-2 block">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Mobile</span>
+                  <input
+                    type="text"
+                    value={shippingAddress.mobile}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, mobile: e.target.value }))}
+                    className="input-field mt-1 w-full"
+                    placeholder="Mobile number"
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveAddress}
+                className="mt-6 px-5 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium"
+              >
+                Save Address
+              </button>
+            </div>
+          )}
           <div className="space-y-4">
             {items.map((item) => (
               <motion.div

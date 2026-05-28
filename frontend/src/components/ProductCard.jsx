@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -29,6 +29,7 @@ const ProductCard = ({ product, index }) => {
   const firstAvailableSize = sizes.find(([, quantity]) => Number(quantity) > 0)?.[0] || sizes[0]?.[0] || 'M';
   const [size, setSize] = useState(firstAvailableSize);
   const [feedback, setFeedback] = useState('');
+  const [addedToCart, setAddedToCart] = useState(false);
   const isUnavailable = product.stockStatus === 'OUT_OF_STOCK' || product.totalQuantity === 0;
 
   useEffect(() => {
@@ -49,9 +50,11 @@ const ProductCard = ({ product, index }) => {
     const result = await addToCart(product.id, size, 1);
     if (result.success) {
       setFeedback('Added to cart!');
+      setAddedToCart(true);
       setTimeout(() => setFeedback(''), 2000);
     } else {
       setFeedback(result.message || 'Could not add to cart');
+      setAddedToCart(false);
     }
   };
 
@@ -151,6 +154,14 @@ const ProductCard = ({ product, index }) => {
           <p className={`text-xs mt-2 text-center ${feedback.includes('Added') ? 'text-green-600' : 'text-red-500'}`}>
             {feedback}
           </p>
+        )}
+        {addedToCart && (
+          <Link
+            to="/cart"
+            className="block text-center mt-3 text-sm font-semibold text-primary hover:text-primary/80"
+          >
+            Go to Cart
+          </Link>
         )}
         {!isAuthenticated && (
           <p className="text-xs text-gray-400 mt-2 text-center">Login required to add items</p>
