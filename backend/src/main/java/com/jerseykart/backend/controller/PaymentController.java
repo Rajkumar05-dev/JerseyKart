@@ -137,6 +137,44 @@ public class PaymentController {
         return ResponseEntity.ok(Map.of("status", "success", "message", "Payment verified and order placed"));
     }
 
+    @PostMapping("/cod")
+    public ResponseEntity<Map<String, Object>> createCodOrder(@RequestBody(required = false) Map<String, Object> body) {
+        User user = getCurrentUser();
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+
+        var cart = cartService.findUserCart(user.getId());
+        if (cart == null || cart.getCartItems().isEmpty() || cart.getTotalDiscountedPrice() == null || cart.getTotalDiscountedPrice() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty or invalid");
+        }
+
+        try {
+            Address shippingAddress = buildShippingAddress(body, user);
+            
+            // Create COD Order
+            Order order = orderService.createOrder(user, shippingAddress, "COD", "COD_" + System.currentTimeMillis());
+            
+            // Set order status to PLACED and payment status to PENDING
+            order.setOrderStatus("PLACED");
+            order.setPaymentStatus("PENDING");
+            orderService.saveOrder(order);
+            
+            // Clear User's Cart
+            cartService.clearCart(user.getId());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "success");
+            result.put("message", "COD Order placed successfully");
+            result.put("orderId", order.getId());
+            return ResponseEntity.ok(result);
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to place COD order", ex);
+        }
+    }
+
     private boolean verifySignature(String payload, String signature) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trash2, ShoppingBag, Minus, Plus, MapPin, Edit2, CheckCircle2, Home, Briefcase, PlusCircle, X } from 'lucide-react';
+import { Trash2, ShoppingBag, Minus, Plus, MapPin, Edit2, CheckCircle2, Home, Briefcase, PlusCircle, X, CreditCard, Banknote } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import api from '../api/axios';
@@ -29,6 +29,7 @@ const Cart = () => {
   const { cart, removeFromCart, updateCartItem, refreshCart } = useCart();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('RAZORPAY');
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [shippingAddress, setShippingAddress] = useState({
@@ -241,53 +242,63 @@ const Cart = () => {
     setCheckoutLoading(true);
 
     try {
-      const { data } = await api.post('/api/payment/create-order', {
+      const addressPayload = {
         shippingAddress: {
           ...shippingAddress,
           firstName: shippingAddress.firstName || user?.firstName || 'Customer',
           lastName: shippingAddress.lastName || user?.lastName || '',
         },
-      });
-
-      const isLoaded = await loadRazorpayScript('https://checkout.razorpay.com/v1/checkout.js');
-      if (!isLoaded) {
-        setCheckoutError('Unable to load Razorpay checkout. Please try again.');
-        return;
-      }
-
-      const options = {
-        key: data.razorpayKey,
-        amount: data.amount,
-        currency: data.currency,
-        order_id: data.razorpayOrderId,
-        name: 'JerseyKart',
-        description: 'Complete your payment',
-        prefill: {
-          name: data.userName,
-          email: data.userEmail,
-          contact: data.userContact || undefined,
-        },
-        theme: {
-          color: '#2563eb',
-        },
-        handler: async function (response) {
-          try {
-            await api.post('/api/payment/verify', {
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            });
-            await refreshCart();
-            window.alert('Payment successful! Your order is confirmed.');
-          } catch (verifyError) {
-            console.error('Payment verification failed', verifyError);
-            setCheckoutError('Payment verification failed. Please contact support.');
-          }
-        },
       };
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      if (paymentMethod === 'COD') {
+        // Call Cash on Delivery placement endpoint
+        await api.post('/api/payment/cod', addressPayload);
+        await refreshCart();
+        window.alert('Order placed successfully using Cash on Delivery!');
+      } else {
+        // Online Payment using Razorpay
+        const { data } = await api.post('/api/payment/create-order', addressPayload);
+
+        const isLoaded = await loadRazorpayScript('https://checkout.razorpay.com/v1/checkout.js');
+        if (!isLoaded) {
+          setCheckoutError('Unable to load Razorpay checkout. Please try again.');
+          return;
+        }
+
+        const options = {
+          key: data.razorpayKey,
+          amount: data.amount,
+          currency: data.currency,
+          order_id: data.razorpayOrderId,
+          name: 'JerseyKart',
+          description: 'Complete your payment',
+          prefill: {
+            name: data.userName,
+            email: data.userEmail,
+            contact: data.userContact || undefined,
+          },
+          theme: {
+            color: '#2563eb',
+          },
+          handler: async function (response) {
+            try {
+              await api.post('/api/payment/verify', {
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+              await refreshCart();
+              window.alert('Payment successful! Your order is confirmed.');
+            } catch (verifyError) {
+              console.error('Payment verification failed', verifyError);
+              setCheckoutError('Payment verification failed. Please contact support.');
+            }
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      }
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Checkout failed. Please try again.';
       setCheckoutError(msg);
@@ -630,6 +641,38 @@ const Cart = () => {
                 {formatPrice(cart.totalPrice)}
               </p>
             )}
+
+            {/* Payment Method Selector */}
+            <div className="mt-6 pt-6 border-t dark:border-gray-800">
+              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 block mb-3">Select Payment Method</span>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('RAZORPAY')}
+                  className={`flex flex-col items-center justify-center p-4 rounded-xl border text-sm font-semibold transition-all duration-300 gap-2 ${
+                    paymentMethod === 'RAZORPAY'
+                      ? 'border-primary bg-primary/5 text-primary shadow-sm shadow-primary/5'
+                      : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'
+                  }`}
+                >
+                  <CreditCard size={20} />
+                  <span>Online Payment</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('COD')}
+                  className={`flex flex-col items-center justify-center p-4 rounded-xl border text-sm font-semibold transition-all duration-300 gap-2 ${
+                    paymentMethod === 'COD'
+                      ? 'border-primary bg-primary/5 text-primary shadow-sm shadow-primary/5'
+                      : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'
+                  }`}
+                >
+                  <Banknote size={20} />
+                  <span>Cash on Delivery</span>
+                </button>
+              </div>
+            </div>
             {checkoutError && (
               <p className="text-sm text-red-500 mt-4">{checkoutError}</p>
             )}
