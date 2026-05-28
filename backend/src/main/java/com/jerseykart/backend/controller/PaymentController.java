@@ -165,13 +165,13 @@ public class PaymentController {
             shipping = (Map<String, String>) body.get("shippingAddress");
         }
 
-        address.setFirstName(user.getFirstName());
-        address.setLastName(user.getLastName());
+        address.setFirstName(shipping != null && shipping.containsKey("firstName") ? shipping.get("firstName") : user.getFirstName());
+        address.setLastName(shipping != null && shipping.containsKey("lastName") ? shipping.get("lastName") : user.getLastName());
         address.setStreetAddress(shipping != null ? shipping.getOrDefault("streetAddress", "Not provided") : "Not provided");
         address.setCity(shipping != null ? shipping.getOrDefault("city", "") : "");
         address.setState(shipping != null ? shipping.getOrDefault("state", "") : "");
         address.setZipCode(shipping != null ? shipping.getOrDefault("zipCode", "000000") : "000000");
-        address.setMobile(user.getMobile() != null ? user.getMobile() : "");
+        address.setMobile(shipping != null && shipping.containsKey("mobile") ? shipping.get("mobile") : (user.getMobile() != null ? user.getMobile() : ""));
         return address;
     }
 

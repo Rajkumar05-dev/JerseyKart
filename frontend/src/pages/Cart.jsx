@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trash2, ShoppingBag, Minus, Plus } from 'lucide-react';
+import { Trash2, ShoppingBag, Minus, Plus, MapPin, Edit2, CheckCircle2, Home, Briefcase, PlusCircle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import api from '../api/axios';
@@ -29,7 +29,10 @@ const Cart = () => {
   const { cart, removeFromCart, updateCartItem, refreshCart } = useCart();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [shippingAddress, setShippingAddress] = useState({
+    id: null,
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     streetAddress: '',
@@ -37,37 +40,79 @@ const Cart = () => {
     state: '',
     zipCode: '',
     mobile: user?.mobile || '',
+    label: 'Home',
   });
-  const [showAddressForm, setShowAddressForm] = useState(true);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
   const [addressSaved, setAddressSaved] = useState(false);
 
+  // Load saved addresses from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('jerseykartShippingAddress');
+    const saved = localStorage.getItem('jerseykartSavedAddresses');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const isComplete = parsed?.streetAddress?.trim() && parsed?.city?.trim() && parsed?.zipCode?.trim() && parsed?.mobile?.trim();
-        if (isComplete) {
-          setShippingAddress({
-            firstName: parsed.firstName || user?.firstName || '',
-            lastName: parsed.lastName || user?.lastName || '',
-            streetAddress: parsed.streetAddress || '',
-            city: parsed.city || '',
-            state: parsed.state || '',
-            zipCode: parsed.zipCode || '',
-            mobile: parsed.mobile || user?.mobile || '',
-          });
-          setShowAddressForm(false);
-          setAddressSaved(true);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAddresses(parsed);
+          
+          // Auto-select the first complete address or previously selected one
+          const prevSelectedId = localStorage.getItem('jerseykartSelectedAddressId');
+          let selected = parsed.find(addr => addr.id === Number(prevSelectedId)) || parsed[0];
+          
+          if (selected) {
+            setSelectedAddressId(selected.id);
+            setShippingAddress(selected);
+            setAddressSaved(true);
+            setShowAddressForm(false);
+          } else {
+            setShowAddressForm(true);
+          }
+        } else {
+          setShowAddressForm(true);
         }
-      } catch {
-        // ignore malformed saved address
+      } catch (err) {
+        setShowAddressForm(true);
+      }
+    } else {
+      // Fallback: If there is a single old address saved in localStorage under old key
+      const oldSaved = localStorage.getItem('jerseykartShippingAddress');
+      if (oldSaved) {
+        try {
+          const parsed = JSON.parse(oldSaved);
+          const isComplete = parsed?.streetAddress?.trim() && parsed?.city?.trim() && parsed?.zipCode?.trim() && parsed?.mobile?.trim();
+          if (isComplete) {
+            const initialAddr = {
+              id: Date.now(),
+              firstName: parsed.firstName || user?.firstName || '',
+              lastName: parsed.lastName || user?.lastName || '',
+              streetAddress: parsed.streetAddress || '',
+              city: parsed.city || '',
+              state: parsed.state || '',
+              zipCode: parsed.zipCode || '',
+              mobile: parsed.mobile || user?.mobile || '',
+              label: 'Home',
+            };
+            setAddresses([initialAddr]);
+            setSelectedAddressId(initialAddr.id);
+            setShippingAddress(initialAddr);
+            setAddressSaved(true);
+            setShowAddressForm(false);
+            localStorage.setItem('jerseykartSavedAddresses', JSON.stringify([initialAddr]));
+          } else {
+            setShowAddressForm(true);
+          }
+        } catch {
+          setShowAddressForm(true);
+        }
+      } else {
+        setShowAddressForm(true);
       }
     }
   }, [user]);
 
+  // Keep first/last name updated from user if form is empty and we just loaded user
   useEffect(() => {
-    if (user) {
+    if (user && !editingAddressId && !shippingAddress.streetAddress) {
       setShippingAddress((prev) => ({
         ...prev,
         firstName: prev.firstName || user.firstName || '',
@@ -75,21 +120,101 @@ const Cart = () => {
         mobile: prev.mobile || user.mobile || '',
       }));
     }
-  }, [user]);
+  }, [user, editingAddressId]);
 
   const handleSaveAddress = () => {
     setCheckoutError('');
-    const requiredFields = ['streetAddress', 'city', 'zipCode', 'mobile'];
+    const requiredFields = ['firstName', 'streetAddress', 'city', 'zipCode', 'mobile'];
     const missingField = requiredFields.find((field) => !shippingAddress[field]?.trim());
     if (missingField) {
       setCheckoutError('Please fill in all required address fields before saving.');
       return false;
     }
 
-    localStorage.setItem('jerseykartShippingAddress', JSON.stringify(shippingAddress));
+    let updatedList;
+    if (editingAddressId) {
+      // Update existing address
+      updatedList = addresses.map(addr => addr.id === editingAddressId ? { ...shippingAddress, id: editingAddressId } : addr);
+    } else {
+      // Add new address
+      const newAddress = { ...shippingAddress, id: Date.now() };
+      updatedList = [...addresses, newAddress];
+      setSelectedAddressId(newAddress.id);
+      setShippingAddress(newAddress);
+    }
+
+    setAddresses(updatedList);
+    localStorage.setItem('jerseykartSavedAddresses', JSON.stringify(updatedList));
+    localStorage.setItem('jerseykartSelectedAddressId', String(shippingAddress.id || Date.now()));
+    
     setAddressSaved(true);
     setShowAddressForm(false);
+    setEditingAddressId(null);
     return true;
+  };
+
+  const handleSelectAddress = (addr) => {
+    setSelectedAddressId(addr.id);
+    setShippingAddress(addr);
+    setAddressSaved(true);
+    localStorage.setItem('jerseykartSelectedAddressId', String(addr.id));
+  };
+
+  const handleAddNewClick = () => {
+    setShippingAddress({
+      id: null,
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      streetAddress: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      mobile: user?.mobile || '',
+      label: 'Home',
+    });
+    setEditingAddressId(null);
+    setShowAddressForm(true);
+    setAddressSaved(false);
+  };
+
+  const handleEditClick = (addr, e) => {
+    e.stopPropagation(); // Avoid triggering selection
+    setShippingAddress(addr);
+    setEditingAddressId(addr.id);
+    setShowAddressForm(true);
+    setAddressSaved(false);
+  };
+
+  const handleDeleteClick = (id, e) => {
+    e.stopPropagation(); // Avoid triggering selection
+    if (!window.confirm('Are you sure you want to delete this address?')) return;
+    
+    const updatedList = addresses.filter(addr => addr.id !== id);
+    setAddresses(updatedList);
+    localStorage.setItem('jerseykartSavedAddresses', JSON.stringify(updatedList));
+    
+    if (selectedAddressId === id) {
+      if (updatedList.length > 0) {
+        setSelectedAddressId(updatedList[0].id);
+        setShippingAddress(updatedList[0]);
+        localStorage.setItem('jerseykartSelectedAddressId', String(updatedList[0].id));
+      } else {
+        setSelectedAddressId(null);
+        setShippingAddress({
+          id: null,
+          firstName: user?.firstName || '',
+          lastName: user?.lastName || '',
+          streetAddress: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          mobile: user?.mobile || '',
+          label: 'Home',
+        });
+        setAddressSaved(false);
+        setShowAddressForm(true);
+      }
+    }
   };
 
   if (authLoading) {
@@ -189,108 +314,254 @@ const Cart = () => {
         </motion.div>
       ) : (
         <>
-          {addressSaved && !showAddressForm ? (
-            <div className="glass-card p-6 mb-6">
-              <div className="flex flex-col gap-4">
-                <div>
-                  <h2 className="text-2xl font-semibold dark:text-white mb-2">Shipping Address</h2>
-                  <p className="text-gray-500 dark:text-gray-400">{shippingAddress.firstName} {shippingAddress.lastName}</p>
-                  <p className="text-gray-500 dark:text-gray-400">{shippingAddress.streetAddress}</p>
-                  <p className="text-gray-500 dark:text-gray-400">{shippingAddress.city}, {shippingAddress.state} {shippingAddress.zipCode}</p>
-                  <p className="text-gray-500 dark:text-gray-400">{shippingAddress.mobile}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAddressForm(true)}
-                  className="px-5 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium w-max"
-                >
-                  Edit Address
-                </button>
+          {showAddressForm ? (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card p-6 mb-6 border border-primary/20 dark:border-primary/10"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold font-display dark:text-white flex items-center gap-2">
+                  <MapPin className="text-primary" />
+                  {editingAddressId ? 'Edit Shipping Address' : 'Add New Shipping Address'}
+                </h2>
+                {addresses.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddressForm(false); setEditingAddressId(null); }}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                    aria-label="Cancel Address Form"
+                  >
+                    <X size={20} className="text-gray-500" />
+                  </button>
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="glass-card p-6 mb-6">
-              <h2 className="text-2xl font-semibold dark:text-white mb-4">Shipping Address</h2>
+              
+              {/* Address Label Selector */}
+              <div className="mb-6">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-3">Address Label</span>
+                <div className="flex gap-3">
+                  {['Home', 'Work', 'Other'].map((lbl) => (
+                    <button
+                      key={lbl}
+                      type="button"
+                      onClick={() => setShippingAddress(prev => ({ ...prev, label: lbl }))}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300 ${
+                        shippingAddress.label === lbl
+                          ? 'border-primary bg-primary/5 text-primary shadow-sm shadow-primary/5'
+                          : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'
+                      }`}
+                    >
+                      {lbl === 'Home' && <Home size={15} />}
+                      {lbl === 'Work' && <Briefcase size={15} />}
+                      {lbl === 'Other' && <MapPin size={15} />}
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">First Name</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">First Name <span className="text-red-500">*</span></span>
                   <input
                     type="text"
+                    required
                     value={shippingAddress.firstName}
                     onChange={(e) => setShippingAddress((prev) => ({ ...prev, firstName: e.target.value }))}
-                    className="input-field mt-1 w-full"
+                    className="input-field mt-1.5 w-full"
                     placeholder="First name"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Last Name</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Last Name</span>
                   <input
                     type="text"
                     value={shippingAddress.lastName}
                     onChange={(e) => setShippingAddress((prev) => ({ ...prev, lastName: e.target.value }))}
-                    className="input-field mt-1 w-full"
+                    className="input-field mt-1.5 w-full"
                     placeholder="Last name"
                   />
                 </label>
                 <label className="sm:col-span-2 block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Street Address</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Street Address <span className="text-red-500">*</span></span>
                   <input
                     type="text"
+                    required
                     value={shippingAddress.streetAddress}
                     onChange={(e) => setShippingAddress((prev) => ({ ...prev, streetAddress: e.target.value }))}
-                    className="input-field mt-1 w-full"
-                    placeholder="Street address"
+                    className="input-field mt-1.5 w-full"
+                    placeholder="Flat/House no., building, street, area"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">City</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">City <span className="text-red-500">*</span></span>
                   <input
                     type="text"
+                    required
                     value={shippingAddress.city}
                     onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
-                    className="input-field mt-1 w-full"
+                    className="input-field mt-1.5 w-full"
                     placeholder="City"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">State</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">State</span>
                   <input
                     type="text"
                     value={shippingAddress.state}
                     onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))}
-                    className="input-field mt-1 w-full"
+                    className="input-field mt-1.5 w-full"
                     placeholder="State"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Zip Code</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Zip Code <span className="text-red-500">*</span></span>
                   <input
                     type="text"
+                    required
                     value={shippingAddress.zipCode}
                     onChange={(e) => setShippingAddress((prev) => ({ ...prev, zipCode: e.target.value }))}
-                    className="input-field mt-1 w-full"
+                    className="input-field mt-1.5 w-full"
                     placeholder="Zip code"
                   />
                 </label>
                 <label className="sm:col-span-2 block">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Mobile</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Mobile <span className="text-red-500">*</span></span>
                   <input
                     type="text"
+                    required
                     value={shippingAddress.mobile}
                     onChange={(e) => setShippingAddress((prev) => ({ ...prev, mobile: e.target.value }))}
-                    className="input-field mt-1 w-full"
-                    placeholder="Mobile number"
+                    className="input-field mt-1.5 w-full"
+                    placeholder="Mobile number for delivery updates"
                   />
                 </label>
               </div>
-              <button
-                type="button"
-                onClick={handleSaveAddress}
-                className="mt-6 px-5 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium"
-              >
-                Save Address
-              </button>
-            </div>
+              
+              <div className="mt-8 flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleSaveAddress}
+                  className="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary/95 transition-all font-semibold shadow-md shadow-primary/10"
+                >
+                  Save Address
+                </button>
+                {addresses.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddressForm(false); setEditingAddressId(null); }}
+                    className="px-6 py-3 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card p-6 mb-6"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold font-display dark:text-white flex items-center gap-2">
+                  <MapPin className="text-primary" />
+                  Select Shipping Address
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleAddNewClick}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/90 transition"
+                >
+                  <PlusCircle size={18} /> Add New Address
+                </button>
+              </div>
+
+              {/* Saved Address Cards Grid */}
+              <div className="grid gap-4 sm:grid-cols-2 mb-6">
+                {addresses.map((addr) => {
+                  const isSelected = selectedAddressId === addr.id;
+                  return (
+                    <motion.div
+                      key={addr.id}
+                      onClick={() => handleSelectAddress(addr)}
+                      className={`relative p-5 rounded-2xl border cursor-pointer flex flex-col justify-between transition-all duration-300 group ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-lg shadow-primary/5'
+                          : 'border-gray-150 dark:border-gray-800 bg-white/5 hover:border-gray-300 dark:hover:border-gray-700'
+                      }`}
+                      whileHover={{ y: -2 }}
+                    >
+                      <div>
+                        {/* Card Header */}
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                              isSelected ? 'border-primary bg-primary' : 'border-gray-300'
+                            }`}>
+                              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              {addr.firstName} {addr.lastName}
+                            </span>
+                          </div>
+
+                          {/* Label Badge */}
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            isSelected
+                              ? 'bg-primary/15 text-primary dark:bg-primary/20'
+                              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                          }`}>
+                            {addr.label === 'Home' && <Home size={12} />}
+                            {addr.label === 'Work' && <Briefcase size={12} />}
+                            {addr.label === 'Other' && <MapPin size={12} />}
+                            {addr.label}
+                          </span>
+                        </div>
+
+                        {/* Address Details */}
+                        <div className="space-y-1 text-sm text-gray-500 dark:text-gray-400 pl-6">
+                          <p>{addr.streetAddress}</p>
+                          <p>{addr.city}, {addr.state} {addr.zipCode}</p>
+                          <p className="font-medium text-gray-700 dark:text-gray-300 mt-2">📞 {addr.mobile}</p>
+                        </div>
+                      </div>
+
+                      {/* Card Actions */}
+                      <div className="flex justify-end gap-2 mt-4 pl-6 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={(e) => handleEditClick(addr, e)}
+                          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-855 text-gray-500 hover:text-blue-500 transition"
+                          title="Edit Address"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteClick(addr.id, e)}
+                          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-855 text-gray-500 hover:text-red-500 transition"
+                          title="Delete Address"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Show selected summary */}
+              {selectedAddressId && (
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 flex items-center gap-3">
+                  <CheckCircle2 className="text-green-500 shrink-0" size={18} />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Delivering to <strong className="text-gray-900 dark:text-white">{shippingAddress.firstName}</strong> at <span>{shippingAddress.streetAddress}, {shippingAddress.city}</span>
+                  </p>
+                </div>
+              )}
+            </motion.div>
           )}
           <div className="space-y-4">
             {items.map((item) => (
