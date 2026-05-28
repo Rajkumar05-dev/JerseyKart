@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trash2, ShoppingBag } from 'lucide-react';
+import { Trash2, ShoppingBag, Minus, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import api from '../api/axios';
@@ -26,9 +26,29 @@ const loadRazorpayScript = (src) =>
 
 const Cart = () => {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
-  const { cart, removeFromCart, refreshCart } = useCart();
+  const { cart, removeFromCart, updateCartItem, refreshCart } = useCart();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [shippingAddress, setShippingAddress] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    streetAddress: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    mobile: user?.mobile || '',
+  });
+
+  useEffect(() => {
+    if (user) {
+      setShippingAddress((prev) => ({
+        ...prev,
+        firstName: prev.firstName || user.firstName || '',
+        lastName: prev.lastName || user.lastName || '',
+        mobile: prev.mobile || user.mobile || '',
+      }));
+    }
+  }, [user]);
 
   if (authLoading) {
     return <p className="text-center py-20 text-gray-500">Loading...</p>;
@@ -47,18 +67,21 @@ const Cart = () => {
       return;
     }
 
+    const requiredFields = ['streetAddress', 'city', 'zipCode', 'mobile'];
+    const missingField = requiredFields.find((field) => !shippingAddress[field]?.trim());
+    if (missingField) {
+      setCheckoutError('Please enter your shipping address and location before checkout.');
+      return;
+    }
+
     setCheckoutLoading(true);
 
     try {
       const { data } = await api.post('/api/payment/create-order', {
         shippingAddress: {
-          firstName: user?.firstName || 'Customer',
-          lastName: user?.lastName || '',
-          streetAddress: 'Not provided',
-          city: 'Not provided',
-          state: 'Not provided',
-          zipCode: '000000',
-          mobile: '',
+          ...shippingAddress,
+          firstName: shippingAddress.firstName || user?.firstName || 'Customer',
+          lastName: shippingAddress.lastName || user?.lastName || '',
         },
       });
 
@@ -127,6 +150,81 @@ const Cart = () => {
         </motion.div>
       ) : (
         <>
+          <div className="glass-card p-6 mb-6">
+            <h2 className="text-2xl font-semibold dark:text-white mb-4">Shipping Address</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-sm text-gray-500 dark:text-gray-400">First Name</span>
+                <input
+                  type="text"
+                  value={shippingAddress.firstName}
+                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, firstName: e.target.value }))}
+                  className="input-field mt-1 w-full"
+                  placeholder="First name"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Last Name</span>
+                <input
+                  type="text"
+                  value={shippingAddress.lastName}
+                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, lastName: e.target.value }))}
+                  className="input-field mt-1 w-full"
+                  placeholder="Last name"
+                />
+              </label>
+              <label className="sm:col-span-2 block">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Street Address</span>
+                <input
+                  type="text"
+                  value={shippingAddress.streetAddress}
+                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, streetAddress: e.target.value }))}
+                  className="input-field mt-1 w-full"
+                  placeholder="Street address"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm text-gray-500 dark:text-gray-400">City</span>
+                <input
+                  type="text"
+                  value={shippingAddress.city}
+                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
+                  className="input-field mt-1 w-full"
+                  placeholder="City"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm text-gray-500 dark:text-gray-400">State</span>
+                <input
+                  type="text"
+                  value={shippingAddress.state}
+                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))}
+                  className="input-field mt-1 w-full"
+                  placeholder="State"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Zip Code</span>
+                <input
+                  type="text"
+                  value={shippingAddress.zipCode}
+                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, zipCode: e.target.value }))}
+                  className="input-field mt-1 w-full"
+                  placeholder="Zip code"
+                />
+              </label>
+              <label className="sm:col-span-2 block">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Mobile</span>
+                <input
+                  type="text"
+                  value={shippingAddress.mobile}
+                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, mobile: e.target.value }))}
+                  className="input-field mt-1 w-full"
+                  placeholder="Mobile number"
+                />
+              </label>
+            </div>
+          </div>
           <div className="space-y-4">
             {items.map((item) => (
               <motion.div
@@ -141,8 +239,30 @@ const Cart = () => {
                 />
                 <div className="flex-grow min-w-0">
                   <h2 className="font-semibold dark:text-white truncate">{item.product?.title}</h2>
-                  <p className="text-sm text-gray-500">Size: {item.size} · Qty: {item.quantity}</p>
-                  <p className="text-primary font-bold mt-1">
+                  <div className="mt-2 flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                    <span>Size: {item.size}</span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-2 py-1">
+                      <button
+                        type="button"
+                        onClick={() => updateCartItem(item.id, Math.max(1, item.quantity - 1))}
+                        className="p-1 text-gray-500 hover:text-primary transition-colors"
+                        aria-label="Decrease quantity"
+                        disabled={item.quantity <= 1}
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <span className="text-sm font-semibold">{item.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => updateCartItem(item.id, item.quantity + 1)}
+                        className="p-1 text-gray-500 hover:text-primary transition-colors"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </span>
+                  </div>
+                  <p className="text-primary font-bold mt-3">
                     {formatPrice(item.discountedPrice ?? item.price)}
                   </p>
                 </div>

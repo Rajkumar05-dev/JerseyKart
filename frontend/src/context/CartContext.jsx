@@ -51,9 +51,15 @@ export const CartProvider = ({ children }) => {
     setCartCount(data?.totalItem || 0);
   };
 
+  const updateCartItem = async (cartItemId, quantity) => {
+    const { data } = await api.put(`/api/cart/item/${cartItemId}`, { quantity });
+    setCart(data);
+    setCartCount(data?.totalItem || 0);
+  };
+
   return (
     <CartContext.Provider
-      value={{ cart, cartCount, loading, addToCart, removeFromCart, refreshCart }}
+      value={{ cart, cartCount, loading, addToCart, removeFromCart, updateCartItem, refreshCart }}
     >
       {children}
     </CartContext.Provider>

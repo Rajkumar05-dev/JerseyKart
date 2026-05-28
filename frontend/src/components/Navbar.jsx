@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Search, User, Menu, X, Sun, Moon, LogOut, Heart } from 'lucide-react';
+import { ShoppingCart, Search, User, Sun, Moon, LogOut, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -13,7 +13,7 @@ const Navbar = ({ darkMode, setDarkMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -27,6 +27,10 @@ const Navbar = ({ darkMode, setDarkMode }) => {
     setSearchQuery(params.get('search') || '');
   }, [location.search]);
 
+  useEffect(() => {
+    setIsProfileMenuOpen(false);
+  }, [location.pathname]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     const q = searchQuery.trim();
@@ -35,7 +39,6 @@ const Navbar = ({ darkMode, setDarkMode }) => {
     } else {
       navigate('/products');
     }
-    setIsMobileMenuOpen(false);
   };
 
   const searchBar = (className = '') => (
@@ -83,38 +86,102 @@ const Navbar = ({ darkMode, setDarkMode }) => {
           </button>
 
           {isAuthenticated ? (
-            <>
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  className="hidden sm:block text-sm font-semibold text-primary hover:underline"
-                >
-                  Admin
-                </Link>
-              )}
-              <Link
-                to="/orders"
-                className="hidden sm:block text-sm font-semibold hover:text-primary transition-colors dark:text-white"
-              >
-                Orders
-              </Link>
-              <Link
-                to="/profile"
-                className="hidden sm:flex items-center gap-2 hover:text-primary transition-colors text-sm font-medium dark:text-white"
-                title={user?.email}
-              >
-                <User size={22} />
-                <span className="max-w-[100px] truncate">{user?.firstName || 'Profile'}</span>
-              </Link>
+            <div className="relative">
               <button
                 type="button"
-                onClick={logout}
-                className="hidden sm:flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors dark:text-white"
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-900/90 text-gray-700 dark:text-white hover:text-primary transition-colors"
+                title="Profile menu"
               >
-                <LogOut size={18} />
-                Logout
+                <User size={20} />
               </button>
-            </>
+
+              <AnimatePresence>
+                {isProfileMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-3 w-64 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark shadow-xl p-3 z-50"
+                  >
+                    <div className="flex flex-col gap-2">
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigate('/admin');
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="text-left rounded-xl px-3 py-2 text-sm font-medium text-primary hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                          Admin Dashboard
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate('/orders');
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="text-left rounded-xl px-3 py-2 text-sm font-medium hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        Orders
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate('/wishlist');
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        <span>Wishlist</span>
+                        {wishlistCount > 0 && (
+                          <span className="bg-primary text-white text-[10px] font-bold min-w-5 h-5 px-2 rounded-full flex items-center justify-center">
+                            {wishlistCount > 9 ? '9+' : wishlistCount}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate('/cart');
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        <span>Cart</span>
+                        {cartCount > 0 && (
+                          <span className="bg-primary text-white text-[10px] font-bold min-w-5 h-5 px-2 rounded-full flex items-center justify-center">
+                            {cartCount > 9 ? '9+' : cartCount}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate('/profile');
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="text-left rounded-xl px-3 py-2 text-sm font-medium hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        Profile
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          logout();
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="text-left rounded-xl px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-gray-800"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           ) : (
             <div className="hidden sm:flex items-center gap-3">
               <Link
@@ -128,101 +195,11 @@ const Navbar = ({ darkMode, setDarkMode }) => {
               </Link>
             </div>
           )}
-
-          {isAuthenticated && (
-            <Link to="/wishlist" className="relative hover:text-primary transition-colors dark:text-white" title="Wishlist">
-              <Heart size={22} className={wishlistCount > 0 ? "fill-primary text-primary" : ""} />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex justify-center items-center">
-                  {wishlistCount}
-                </span>
-              )}
-            </Link>
-          )}
-
-          <Link to="/cart" className="relative hover:text-primary transition-colors dark:text-white">
-            <ShoppingCart size={22} />
-            {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex justify-center items-center">
-                {cartCount > 9 ? '9+' : cartCount}
-              </span>
-            )}
-          </Link>
-
-          <button
-            type="button"
-            className="md:hidden hover:text-primary transition-colors dark:text-white"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Menu"
-          >
-            {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
-          </button>
         </div>
       </div>
 
       {/* Mobile search — always visible below header row */}
       <div className="md:hidden mt-3 px-0">{searchBar()}</div>
-
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full bg-white dark:bg-dark p-6 shadow-xl flex flex-col gap-4 z-40 md:hidden border-t dark:border-gray-800"
-          >
-            {isAuthenticated ? (
-              <>
-                {isAdmin && (
-                  <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2 text-primary">
-                    Admin Dashboard
-                  </Link>
-                )}
-                <Link
-                  to="/wishlist"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-2 hover:text-primary transition-colors"
-                >
-                  <Heart size={20} /> Wishlist
-                </Link>
-                <Link
-                  to="/orders"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-2 hover:text-primary transition-colors"
-                >
-                  📦 Orders
-                </Link>
-                <Link
-                  to="/profile"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-2 hover:text-primary transition-colors"
-                >
-                  <User size={20} /> Profile
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    logout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 hover:text-primary transition-colors text-left"
-                >
-                  <LogOut size={20} /> Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-medium py-2">
-                  Login
-                </Link>
-                <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="btn-primary text-center">
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </nav>
   );
 };

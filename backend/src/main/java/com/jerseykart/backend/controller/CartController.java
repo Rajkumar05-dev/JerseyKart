@@ -49,6 +49,17 @@ public class CartController {
         return new ResponseEntity<>(cartService.findUserCart(user.getId()), HttpStatus.OK);
     }
 
+    @PutMapping("/item/{cartItemId}")
+    public ResponseEntity<Cart> updateCartItem(@PathVariable Long cartItemId, @RequestBody Map<String, Object> body) {
+        User user = getCurrentUser();
+        int quantity = body.containsKey("quantity")
+                ? Integer.parseInt(body.get("quantity").toString())
+                : 1;
+
+        cartService.updateCartItem(user.getId(), cartItemId, quantity);
+        return new ResponseEntity<>(cartService.findUserCart(user.getId()), HttpStatus.OK);
+    }
+
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();

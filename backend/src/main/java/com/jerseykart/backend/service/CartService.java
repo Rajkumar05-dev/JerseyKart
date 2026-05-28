@@ -103,6 +103,29 @@ public class CartService {
     }
 
     @Transactional
+    public CartItem updateCartItem(Long userId, Long cartItemId, int quantity) {
+        Cart cart = getOrCreateCart(userId);
+        for (CartItem item : cart.getCartItems()) {
+            if (item.getId().equals(cartItemId) && item.getUserId().equals(userId)) {
+                if (quantity <= 0) {
+                    removeCartItem(userId, cartItemId);
+                    return null;
+                }
+                item.setQuantity(quantity);
+                double unitPrice = item.getProduct().getPrice() != null ? item.getProduct().getPrice() : 0.0;
+                double unitDiscount = item.getProduct().getDiscountPrice() != null ? item.getProduct().getDiscountPrice() : unitPrice;
+                item.setPrice(unitPrice * quantity);
+                item.setDiscountedPrice(unitDiscount * quantity);
+                cartItemService.updateCartItem(userId, item.getId(), item);
+                cartRepository.save(cart);
+                findUserCart(userId);
+                return item;
+            }
+        }
+        return null;
+    }
+
+    @Transactional
     public void clearCart(Long userId) {
         Cart cart = getOrCreateCart(userId);
         cart.getCartItems().clear();
